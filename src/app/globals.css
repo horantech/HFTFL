@@ -1,0 +1,158 @@
+@import "tailwindcss";
+
+:root {
+  /* HFTF brand */
+  --brand-tan: #c8a97e;
+  --brand-tan-dark: #a87f4f;
+  --brand-cream: #f6efe2;
+  --brand-cream-soft: #fbf7ee;
+  --brand-green: #4a5d4f;
+  --brand-green-dark: #2f3a32;
+  --brand-gold: #b88a3e;
+  --ink: #1f1d1a;
+  --ink-soft: #4d4943;
+  --line: #e8e0cf;
+
+  --background: var(--brand-cream-soft);
+  --foreground: var(--ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand: var(--brand-tan);
+  --color-brand-dark: var(--brand-tan-dark);
+  --color-brand-green: var(--brand-green);
+  --color-brand-green-dark: var(--brand-green-dark);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --font-sans: var(--font-sans, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+  --font-display: var(--font-display, "Georgia", "Times New Roman", serif);
+}
+
+html, body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* Input baseline */
+.input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: white;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 120ms, box-shadow 120ms;
+}
+.input:focus {
+  border-color: var(--brand-tan);
+  box-shadow: 0 0 0 3px rgba(200, 169, 126, 0.25);
+}
+.label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.92rem;
+  transition: background-color 120ms, color 120ms, border-color 120ms, transform 60ms;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--brand-green); color: #fff; }
+.btn-primary:hover { background: var(--brand-green-dark); }
+.btn-brand { background: var(--brand-tan); color: #fff; }
+.btn-brand:hover { background: var(--brand-tan-dark); }
+.btn-outline { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn-outline:hover { background: white; }
+.btn-ghost { background: transparent; color: var(--ink); }
+.btn-ghost:hover { background: rgba(0,0,0,0.04); }
+.btn-danger { background: #b3261e; color: #fff; }
+.btn-danger:hover { background: #8c1d18; }
+
+/* Card */
+.card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+.card-pad-0 { padding: 0; }
+
+/* Table */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th {
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--brand-cream);
+}
+.table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.93rem;
+}
+.table tr:last-child td { border-bottom: 0; }
+.table tr:hover td { background: rgba(200, 169, 126, 0.06); }
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: white;
+  color: var(--ink-soft);
+}
+.badge-success { background: #ecf5ee; color: #245c33; border-color: #c5e1cc; }
+.badge-warn    { background: #fdf3df; color: #7a5314; border-color: #ecd9a8; }
+.badge-muted   { background: var(--brand-cream); color: var(--ink-soft); border-color: var(--line); }
+
+/* Print-friendly ticket */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+}
