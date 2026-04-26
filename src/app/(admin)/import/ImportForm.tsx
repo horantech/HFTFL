@@ -71,7 +71,7 @@ export default function ImportForm({ sponsors }: { sponsors: SponsorOpt[] }) {
           type="file"
           accept=".csv,text/csv"
           onChange={(e) => e.target.files?.[0] && parseFile(e.target.files[0])}
-          className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[var(--brand-green)] file:text-white file:px-4 file:py-2 file:font-medium hover:file:bg-[var(--brand-green-dark)]"
+          className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[var(--ink)] file:text-white file:px-4 file:py-2 file:font-medium hover:file:bg-[var(--primary-hover)]"
         />
         {filename && <div className="text-xs text-[var(--ink-soft)] mt-1">{filename} · {rows?.length ?? 0} rows</div>}
       </div>
@@ -109,7 +109,7 @@ export default function ImportForm({ sponsors }: { sponsors: SponsorOpt[] }) {
       {preview.length > 0 && (
         <div>
           <div className="text-xs uppercase tracking-[0.2em] text-[var(--ink-soft)] mb-1">Preview · first 5 rows</div>
-          <div className="overflow-auto border border-[var(--brand-line)] rounded-md">
+          <div className="overflow-auto border border-[var(--line)] rounded-md">
             <table className="table">
               <thead><tr>{headers.map(h => <th key={h}>{h}</th>)}</tr></thead>
               <tbody>

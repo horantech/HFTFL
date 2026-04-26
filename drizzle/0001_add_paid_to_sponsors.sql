@@ -1,0 +1,1 @@
+ALTER TABLE "sponsors" ADD COLUMN "paid" boolean DEFAULT false NOT NULL;

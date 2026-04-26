@@ -9,6 +9,7 @@ export const sponsors = pgTable(
     contactPhone: text("contact_phone"),
     contactEmail: text("contact_email"),
     isIndividual: boolean("is_individual").notNull().default(false),
+    paid: boolean("paid").notNull().default(false),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

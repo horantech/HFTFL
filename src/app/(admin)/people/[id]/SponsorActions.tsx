@@ -23,7 +23,7 @@ export default function SponsorActions({ sponsorId, smsReady, guestCount }: { sp
     if (!confirm("Delete this sponsor and all their guests? This cannot be undone.")) return;
     setBusy("del");
     const res = await fetch(`/api/sponsors/${sponsorId}`, { method: "DELETE" });
-    if (res.ok) router.push("/sponsors");
+    if (res.ok) router.push("/people");
     else alert("Failed to delete");
     setBusy(null);
   }
@@ -31,11 +31,11 @@ export default function SponsorActions({ sponsorId, smsReady, guestCount }: { sp
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {smsReady && guestCount > 0 && (
-        <button onClick={smsAll} disabled={busy !== null} className="btn btn-brand">
+        <button onClick={smsAll} disabled={busy !== null} className="btn btn-primary">
           <Send size={16}/> {busy === "sms" ? "Sending…" : "Send SMS to all"}
         </button>
       )}
-      <button onClick={remove} disabled={busy !== null} className="btn btn-outline text-red-700 border-red-200">
+      <button onClick={remove} disabled={busy !== null} className="btn btn-outline text-red-700">
         <Trash2 size={16}/> Delete
       </button>
     </div>

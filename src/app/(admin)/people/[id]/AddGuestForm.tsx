@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Check } from "lucide-react";
 
 export default function AddGuestForm({ sponsorId }: { sponsorId: string }) {
   const router = useRouter();
@@ -12,8 +12,8 @@ export default function AddGuestForm({ sponsorId }: { sponsorId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submit(alsoCheckIn = false) {
+    if (!name.trim()) return;
     setBusy(true); setError(null);
     try {
       const res = await fetch(`/api/sponsors/${sponsorId}/guests`, {
@@ -23,6 +23,9 @@ export default function AddGuestForm({ sponsorId }: { sponsorId: string }) {
       });
       const j = await res.json();
       if (!res.ok) { setError(j.error || "Failed"); return; }
+      if (alsoCheckIn) {
+        await fetch(`/api/guests/${j.id}/checkin`, { method: "POST" });
+      }
       setName(""); setPhone(""); setEmail("");
       router.refresh();
     } catch { setError("Network error"); }
@@ -30,9 +33,9 @@ export default function AddGuestForm({ sponsorId }: { sponsorId: string }) {
   }
 
   return (
-    <form onSubmit={submit} className="card">
-      <div className="text-xs uppercase tracking-[0.2em] text-[var(--ink-soft)] mb-1">Add a guest</div>
-      <div className="grid sm:grid-cols-[2fr_1.5fr_1.5fr_auto] gap-3 items-end">
+    <form onSubmit={(e) => { e.preventDefault(); submit(false); }} className="card">
+      <div className="text-sm font-semibold mb-3">Add a guest</div>
+      <div className="grid sm:grid-cols-[2fr_1.3fr_1.3fr] gap-2">
         <div>
           <label className="label">Full name</label>
           <input className="input" required value={name} onChange={e=>setName(e.target.value)} placeholder="Guest name"/>
@@ -45,8 +48,13 @@ export default function AddGuestForm({ sponsorId }: { sponsorId: string }) {
           <label className="label">Email (optional)</label>
           <input className="input" type="email" value={email} onChange={e=>setEmail(e.target.value)}/>
         </div>
-        <button className="btn btn-primary h-[42px]" disabled={busy || !name.trim()}>
-          <Plus size={16}/> Add
+      </div>
+      <div className="flex justify-end gap-2 mt-3">
+        <button type="submit" className="btn btn-outline btn-sm" disabled={busy || !name.trim()}>
+          <Plus size={14}/> Add
+        </button>
+        <button type="button" onClick={() => submit(true)} className="btn btn-primary btn-sm" disabled={busy || !name.trim()}>
+          <Check size={14}/> Add & check in
         </button>
       </div>
       {error && <div className="text-sm text-red-700 mt-2">{error}</div>}
