@@ -3,7 +3,6 @@ import { guests, sponsors } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
-import Image from "next/image";
 import TicketActions from "./TicketActions";
 
 export const dynamic = "force-dynamic";
@@ -41,16 +40,10 @@ export default async function TicketPage({ params }: { params: Promise<{ code: s
   return (
     <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-4">
       <div className="w-full max-w-5xl">
-        <div className="relative aspect-[5/4] sm:aspect-[16/9] bg-white shadow-xl rounded-xl overflow-hidden">
+        <div id="ticket-capture" className="relative aspect-[5/4] sm:aspect-[16/9] bg-white shadow-xl rounded-xl overflow-hidden">
           {/* Static design (kid photo, date, venue, "a Night of HOPE" lockup) */}
-          <Image
-            src="/ticket-template.png"
-            alt=""
-            fill
-            priority
-            sizes="(max-width: 1024px) 100vw, 1024px"
-            className="object-cover"
-          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/ticket-template.png" alt="" className="absolute inset-0 w-full h-full object-cover"/>
 
           {/* Per-guest overlay on the right white half */}
           <div className="absolute inset-0 flex pointer-events-none">
@@ -81,7 +74,12 @@ export default async function TicketPage({ params }: { params: Promise<{ code: s
         </div>
 
         <div className="mt-3 max-w-md mx-auto">
-          <TicketActions filename={`HFTF-${t.guestName.replace(/\s+/g, "_")}.png`} url={url}/>
+          <TicketActions
+            filename={`HFTF-${t.guestName.replace(/\s+/g, "_")}.png`}
+            url={url}
+            guestName={t.guestName}
+            sponsorName={t.sponsorName}
+          />
         </div>
 
         <p className="text-xs text-center text-[var(--ink-mute)] mt-3">
