@@ -18,7 +18,7 @@ export default function LoginPage() {
 
         <div className="relative">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Hope for the Fatherless" className="h-14 w-auto bg-white/95 rounded-lg p-2 shadow-md"/>
+          {/* <img src="/logo.png" alt="Hope for the Fatherless" className="h-14 w-auto bg-white/95 rounded-lg p-2 shadow-md"/> */}
         </div>
 
         <div className="relative space-y-2">
