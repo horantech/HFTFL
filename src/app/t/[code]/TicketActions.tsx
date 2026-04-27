@@ -30,7 +30,7 @@ export default function TicketActions({ filename, url }: { filename: string; url
   }
 
   return (
-    <div className="px-6 pb-6 grid grid-cols-2 gap-2 no-print">
+    <div className="px-4 sm:px-6 pb-4 sm:pb-6 grid grid-cols-1 sm:grid-cols-2 gap-2 no-print">
       <button onClick={download} className="btn btn-outline">
         <Download size={16}/> Download
       </button>

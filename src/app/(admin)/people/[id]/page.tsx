@@ -5,6 +5,7 @@ import { sponsors, guests } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
 import SponsorActions from "./SponsorActions";
+import SponsorEditForm from "./SponsorEditForm";
 import GuestRow from "./GuestRow";
 import AddGuestForm from "./AddGuestForm";
 import PaidToggle from "./PaidToggle";
@@ -14,7 +15,23 @@ export const dynamic = "force-dynamic";
 
 export default async function SponsorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const sponsor = await db.query.sponsors.findFirst({ where: eq(sponsors.id, id) });
+  const [sponsor] = await db
+    .select({
+      id: sponsors.id,
+      name: sponsors.name,
+      contactPhone: sponsors.contactPhone,
+      contactEmail: sponsors.contactEmail,
+      isIndividual: sponsors.isIndividual,
+      paid: sponsors.paid,
+      notes: sponsors.notes,
+      assignedTo: sponsors.assignedTo,
+      bank: sponsors.bank,
+      rsvp: sponsors.rsvp,
+      createdAt: sponsors.createdAt,
+    })
+    .from(sponsors)
+    .where(eq(sponsors.id, id))
+    .limit(1);
   if (!sponsor) notFound();
   const list = await db
     .select()
@@ -24,6 +41,8 @@ export default async function SponsorDetailPage({ params }: { params: Promise<{ 
 
   const checkedIn = list.filter(g => g.checkedInAt).length;
   const smsReady = isSmsConfigured();
+  const sponsorHasTicket = sponsor.isIndividual ||
+    list.some(g => g.name.trim().toLowerCase() === sponsor.name.trim().toLowerCase());
 
   return (
     <div className="space-y-5">
@@ -44,12 +63,28 @@ export default async function SponsorDetailPage({ params }: { params: Promise<{ 
             {sponsor.contactPhone && <span>{sponsor.contactPhone}</span>}
             {sponsor.contactEmail && <span>{sponsor.contactEmail}</span>}
           </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-[var(--ink-mute)]">
+            {sponsor.bank && <span>Bank: {sponsor.bank}</span>}
+            {sponsor.assignedTo && <span>Assigned: {sponsor.assignedTo}</span>}
+            {sponsor.rsvp && <span>RSVP: {sponsor.rsvp}</span>}
+          </div>
           {sponsor.notes && <div className="text-sm text-[var(--ink-mute)] max-w-xl">{sponsor.notes}</div>}
         </div>
-        <SponsorActions sponsorId={sponsor.id} smsReady={smsReady} guestCount={list.length}/>
+        <div className="flex items-center gap-2 flex-wrap">
+          <SponsorEditForm sponsor={sponsor}/>
+          <SponsorActions
+            sponsorId={sponsor.id}
+            smsReady={smsReady}
+            guestCount={list.length}
+            sponsorName={sponsor.name}
+            sponsorPhone={sponsor.contactPhone}
+            sponsorHasTicket={sponsorHasTicket}
+            isIndividual={sponsor.isIndividual}
+          />
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Stat label="Guests" value={list.length}/>
         <Stat label="Checked in" value={checkedIn}/>
         <Stat label="Pending" value={list.length - checkedIn}/>
@@ -58,14 +93,16 @@ export default async function SponsorDetailPage({ params }: { params: Promise<{ 
       <AddGuestForm sponsorId={sponsor.id}/>
 
       <div className="card card-pad-0 overflow-hidden">
-        <div className="px-4 py-3 border-b border-[var(--line)] text-sm font-semibold">Guests under {sponsor.name}</div>
+        <div className="px-3 sm:px-4 py-3 border-b border-[var(--line)] text-sm font-semibold">Guests under {sponsor.name}</div>
         {list.length === 0 ? (
           <div className="p-6 text-center text-[var(--ink-mute)] text-sm">No guests yet.</div>
         ) : (
-          <table className="table">
-            <thead><tr><th>Name</th><th>Phone</th><th>Status</th><th>Ticket</th><th></th></tr></thead>
-            <tbody>{list.map(g => <GuestRow key={g.id} guest={g} smsReady={smsReady}/>)}</tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="table min-w-[720px]">
+              <thead><tr><th>Name</th><th>Phone</th><th>Status</th><th>Ticket</th><th></th></tr></thead>
+              <tbody>{list.map(g => <GuestRow key={g.id} guest={g} smsReady={smsReady} sponsorName={sponsor.name}/>)}</tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

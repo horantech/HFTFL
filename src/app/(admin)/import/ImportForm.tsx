@@ -80,11 +80,11 @@ export default function ImportForm({ sponsors }: { sponsors: SponsorOpt[] }) {
         <label className="label">Group these guests under</label>
         <div className="flex flex-col gap-2 text-sm">
           {sponsors.length > 0 && (
-            <label className="flex items-center gap-2">
+            <label className="flex flex-col sm:flex-row sm:items-center gap-2">
               <input type="radio" checked={mode === "existing" && !individualEach} onChange={() => { setMode("existing"); setIndividualEach(false); }}/>
               <span>An existing sponsor</span>
               {mode === "existing" && !individualEach && (
-                <select className="input ml-2 w-auto" value={sponsorId} onChange={e=>setSponsorId(e.target.value)}>
+                <select className="input sm:ml-2 sm:w-auto" value={sponsorId} onChange={e=>setSponsorId(e.target.value)}>
                   {sponsors.map(s => (
                     <option key={s.id} value={s.id}>{s.name}{s.isIndividual ? " (individual)" : ""}</option>
                   ))}
@@ -92,11 +92,11 @@ export default function ImportForm({ sponsors }: { sponsors: SponsorOpt[] }) {
               )}
             </label>
           )}
-          <label className="flex items-center gap-2">
+          <label className="flex flex-col sm:flex-row sm:items-center gap-2">
             <input type="radio" checked={mode === "new" && !individualEach} onChange={() => { setMode("new"); setIndividualEach(false); }}/>
             <span>A new sponsor named</span>
             {mode === "new" && !individualEach && (
-              <input className="input ml-2 w-auto" value={newSponsorName} onChange={e=>setNewSponsorName(e.target.value)} placeholder="Company name"/>
+              <input className="input sm:ml-2 sm:w-auto" value={newSponsorName} onChange={e=>setNewSponsorName(e.target.value)} placeholder="Company name"/>
             )}
           </label>
           <label className="flex items-center gap-2">
@@ -110,7 +110,7 @@ export default function ImportForm({ sponsors }: { sponsors: SponsorOpt[] }) {
         <div>
           <div className="text-xs uppercase tracking-[0.2em] text-[var(--ink-soft)] mb-1">Preview · first 5 rows</div>
           <div className="overflow-auto border border-[var(--line)] rounded-md">
-            <table className="table">
+            <table className="table min-w-[560px]">
               <thead><tr>{headers.map(h => <th key={h}>{h}</th>)}</tr></thead>
               <tbody>
                 {preview.map((r, i) => (
@@ -126,7 +126,7 @@ export default function ImportForm({ sponsors }: { sponsors: SponsorOpt[] }) {
       {result && <div className="text-sm text-green-800 bg-green-50 border border-green-200 rounded-md p-2.5">{result}</div>}
 
       <div className="flex justify-end">
-        <button onClick={submit} disabled={!rows || busy} className="btn btn-primary">
+        <button onClick={submit} disabled={!rows || busy} className="btn btn-primary w-full sm:w-auto">
           {busy ? <><Send size={16}/> Importing…</> : <><Upload size={16}/> Import {rows?.length || 0} rows</>}
         </button>
       </div>

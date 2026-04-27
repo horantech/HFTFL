@@ -32,7 +32,11 @@ export async function POST(req: Request) {
   // Mode 1: existing sponsor
   if (v.mode === "existing") {
     if (!v.sponsorId) return NextResponse.json({ error: "sponsorId required" }, { status: 400 });
-    const sponsor = await db.query.sponsors.findFirst({ where: eq(sponsors.id, v.sponsorId) });
+    const [sponsor] = await db
+      .select({ id: sponsors.id })
+      .from(sponsors)
+      .where(eq(sponsors.id, v.sponsorId))
+      .limit(1);
     if (!sponsor) return NextResponse.json({ error: "Sponsor not found" }, { status: 404 });
 
     const created = await insertGuests(v.sponsorId, v.rows);

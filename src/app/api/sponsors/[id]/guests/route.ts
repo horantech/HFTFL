@@ -4,6 +4,7 @@ import { guests, sponsors } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { normalizePhone } from "@/lib/utils";
+import { sendTicketToGuest } from "@/lib/notify";
 
 const Body = z.object({
   name: z.string().min(1).max(200),
@@ -13,7 +14,11 @@ const Body = z.object({
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const sponsor = await db.query.sponsors.findFirst({ where: eq(sponsors.id, id) });
+  const [sponsor] = await db
+    .select({ id: sponsors.id, paid: sponsors.paid })
+    .from(sponsors)
+    .where(eq(sponsors.id, id))
+    .limit(1);
   if (!sponsor) return NextResponse.json({ error: "Sponsor not found" }, { status: 404 });
 
   const body = await req.json().catch(() => null);
@@ -30,5 +35,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       email: v.email?.trim() || null,
     })
     .returning({ id: guests.id, ticketCode: guests.ticketCode });
+
+  if (sponsor.paid) {
+    await sendTicketToGuest(row.id);
+  }
+
   return NextResponse.json({ ok: true, id: row.id, ticketCode: row.ticketCode });
 }

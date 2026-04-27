@@ -2,22 +2,29 @@
 
 import { useState } from "react";
 import { Send } from "lucide-react";
+import { toast } from "@/lib/toast";
+import { confirmDialog } from "@/lib/confirm";
 
 export default function ReminderButton() {
   const [busy, setBusy] = useState(false);
   async function send() {
-    if (!confirm("Send a reminder SMS to every guest who has NOT checked in yet?")) return;
+    const ok = await confirmDialog({
+      title: "Send reminder SMS?",
+      message: "This sends a reminder to every paid guest who has not checked in yet.",
+      confirmLabel: "Send reminder",
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       const r = await fetch("/api/sms/reminder-all", { method: "POST" });
       const j = await r.json();
-      if (!r.ok) { alert(j.error || "Failed"); return; }
-      alert(`Sent ${j.sent}, failed ${j.failed}, skipped (no phone) ${j.skipped}.`);
+      if (!r.ok) { toast(j.error || "Failed to send reminders", "error"); return; }
+      toast(`Sent ${j.sent} · failed ${j.failed} · skipped ${j.skipped}`, "success");
     } finally { setBusy(false); }
   }
   return (
-    <button onClick={send} disabled={busy} className="btn btn-outline">
-      <Send size={16}/> {busy ? "Sending…" : "Send reminder to all pending"}
+    <button onClick={send} disabled={busy} className="btn btn-outline btn-lg">
+      <Send size={18}/> {busy ? "Sending…" : "Send reminder"}
     </button>
   );
 }

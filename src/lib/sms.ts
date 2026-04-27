@@ -12,14 +12,14 @@ function getClient() {
 }
 
 function ticketUrl(code: string) {
-  const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const base = process.env.NEXT_PUBLIC_APP_URL || "http://hftf.vercel.app";
   return `${base.replace(/\/$/, "")}/t/${code}`;
 }
 
 export function buildGuestMessage(opts: { name: string; code: string }) {
   const url = ticketUrl(opts.code);
   return (
-    `Dear ${opts.name}, you're invited to ${EVENT.name} on ${EVENT.date} at ${EVENT.time}, ${EVENT.venue}. ` +
+    `Dear ${opts.name}, Thank you for attending our event, ${EVENT.name} on ${EVENT.date} at ${EVENT.time}, ${EVENT.venue}. ` +
     `Show this QR ticket at the door: ${url}`
   );
 }

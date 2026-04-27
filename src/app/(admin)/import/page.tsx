@@ -25,6 +25,16 @@ export default async function ImportPage() {
         </p>
       </div>
 
+      <div className="card flex items-start gap-3 justify-between flex-wrap">
+        <div>
+          <div className="text-sm font-semibold">Have a messy spreadsheet with multiple sponsors mixed together?</div>
+          <div className="text-xs text-[var(--ink-mute)] mt-0.5">
+            Use Smart Paste — it detects sponsor groups, normalizes phones, and previews before saving.
+          </div>
+        </div>
+        <Link href="/import/grouped" className="btn btn-outline btn-sm">Open Smart Paste →</Link>
+      </div>
+
       <div className="card">
         <div className="text-sm font-semibold mb-2">Expected CSV columns</div>
         <div className="text-sm text-[var(--ink-mute)] mb-3">

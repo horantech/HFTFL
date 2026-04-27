@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { db } from "@/db";
 import { guests, sponsors } from "@/db/schema";
-import { sql, desc, eq } from "drizzle-orm";
-import { ScanLine, UserPlus } from "lucide-react";
+import { sql, desc, eq, count } from "drizzle-orm";
+import { ScanLine, UserPlus, User } from "lucide-react";
 import ReminderButton from "./ReminderButton";
 import { isSmsConfigured } from "@/lib/sms";
 import PeopleTable from "../people/PeopleTable";
@@ -12,14 +12,14 @@ export const dynamic = "force-dynamic";
 async function getStats() {
   const [agg] = await db
     .select({
-      total: sql<number>`count(*)::int`,
-      checkedIn: sql<number>`count(${guests.checkedInAt})::int`,
+      total: count(),
+      checkedIn: count(guests.checkedInAt),
     })
     .from(guests);
   const [sponsorAgg] = await db
     .select({
-      total: sql<number>`count(*)::int`,
-      paid: sql<number>`count(*) filter (where ${sponsors.paid} = true)::int`,
+      total: count(),
+      paid: sql<number>`count(*) filter (where ${sponsors.paid} = true)`,
     })
     .from(sponsors);
   return { ...agg, sponsors: sponsorAgg.total, sponsorsPaid: sponsorAgg.paid };
@@ -36,8 +36,8 @@ async function loadPeople() {
       paid: sponsors.paid,
       notes: sponsors.notes,
       createdAt: sponsors.createdAt,
-      total: sql<number>`count(${guests.id})::int`,
-      checkedIn: sql<number>`count(${guests.checkedInAt})::int`,
+      total: count(guests.id),
+      checkedIn: count(guests.checkedInAt),
     })
     .from(sponsors)
     .leftJoin(guests, eq(guests.sponsorId, sponsors.id))
@@ -78,14 +78,15 @@ export default async function DashboardPage() {
           <h1 className="text-2xl font-semibold">Dashboard</h1>
           <p className="text-sm text-[var(--ink-mute)] mt-0.5">Overview of registrations and check-ins.</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Link href="/people/new" className="btn btn-primary"><UserPlus size={16}/> New sponsor</Link>
-          <Link href="/scan" className="btn btn-outline"><ScanLine size={16}/> Open scanner</Link>
+        <div className="flex gap-2 flex-wrap w-full sm:w-auto">
+          <Link href="/people/new-individual" className="btn btn-outline btn-lg"><User size={18}/> Add individual</Link>
+          <Link href="/people/new" className="btn btn-primary btn-lg"><UserPlus size={18}/> New sponsor</Link>
+          <Link href="/scan" className="btn btn-outline btn-lg"><ScanLine size={18}/> Open scanner</Link>
           {smsReady && <ReminderButton/>}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label="Sponsors" value={stats.sponsors} sub={`${stats.sponsorsPaid} paid`}/>
         <Stat label="Guests" value={stats.total} />
         <Stat label="Checked in" value={stats.checkedIn} />
@@ -93,7 +94,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="card card-pad-0 overflow-hidden">
-        <PeopleTable filter="all" q="" sponsors={sponsorRows} guests={guestRows}/>
+        <PeopleTable filter="all" sponsors={sponsorRows} guests={guestRows}/>
       </div>
     </div>
   );

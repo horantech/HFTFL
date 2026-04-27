@@ -49,11 +49,11 @@ export default function AddGuestForm({ sponsorId }: { sponsorId: string }) {
           <input className="input" type="email" value={email} onChange={e=>setEmail(e.target.value)}/>
         </div>
       </div>
-      <div className="flex justify-end gap-2 mt-3">
-        <button type="submit" className="btn btn-outline btn-sm" disabled={busy || !name.trim()}>
+      <div className="flex flex-col sm:flex-row justify-end gap-2 mt-3">
+        <button type="submit" className="btn btn-outline btn-sm w-full sm:w-auto" disabled={busy || !name.trim()}>
           <Plus size={14}/> Add
         </button>
-        <button type="button" onClick={() => submit(true)} className="btn btn-primary btn-sm" disabled={busy || !name.trim()}>
+        <button type="button" onClick={() => submit(true)} className="btn btn-primary btn-sm w-full sm:w-auto" disabled={busy || !name.trim()}>
           <Check size={14}/> Add & check in
         </button>
       </div>

@@ -37,7 +37,8 @@ export default function Sidebar() {
         <button onClick={() => setOpen(true)} className="btn btn-ghost btn-icon" aria-label="Open menu">
           <Menu size={18}/>
         </button>
-        <span className="font-semibold">HFTF Portal</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="Hope for the Fatherless" className="h-8 w-auto"/>
         <button onClick={logout} className="btn btn-ghost btn-icon" aria-label="Sign out">
           <LogOut size={16}/>
         </button>
@@ -58,10 +59,10 @@ export default function Sidebar() {
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        <div className="h-14 px-4 flex items-center justify-between border-b border-[var(--line)]">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-[var(--ink)] text-white font-semibold text-sm">H</span>
-            <span className="font-semibold text-[var(--ink)]">HFTF Portal</span>
+        <div className="h-20 px-4 flex items-center justify-between border-b border-[var(--line)]">
+          <Link href="/dashboard" className="flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Hope for the Fatherless" className="h-14 w-auto"/>
           </Link>
           <button onClick={() => setOpen(false)} className="lg:hidden btn btn-ghost btn-icon" aria-label="Close menu">
             <X size={18}/>

@@ -3,7 +3,7 @@ import { guests, sponsors } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
-import { EVENT } from "@/lib/event";
+import Image from "next/image";
 import TicketActions from "./TicketActions";
 
 export const dynamic = "force-dynamic";
@@ -34,46 +34,53 @@ export default async function TicketPage({ params }: { params: Promise<{ code: s
   const url = `${(base || "").replace(/\/$/, "")}/t/${t.ticketCode}`;
   const qrDataUrl = await QRCode.toDataURL(t.ticketCode, {
     margin: 1,
-    width: 480,
-    color: { dark: "#0f172a", light: "#ffffff" },
+    width: 600,
+    color: { dark: "#1f3a1c", light: "#ffffff" },
   });
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[var(--bg)]">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl border border-[var(--line)] overflow-hidden shadow-sm">
-          <div className="bg-[var(--ink)] text-white px-6 py-5">
-            <div className="text-[10px] tracking-[0.25em] uppercase text-white/60">Hope for the Fatherless</div>
-            <div className="text-xl font-semibold mt-1">Donation Dinner</div>
-            <div className="text-sm text-white/70 mt-1">{EVENT.date} · {EVENT.time}</div>
-          </div>
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-4">
+      <div className="w-full max-w-5xl">
+        <div className="relative aspect-[5/4] sm:aspect-[16/9] bg-white shadow-xl rounded-xl overflow-hidden">
+          {/* Static design (kid photo, date, venue, "a Night of HOPE" lockup) */}
+          <Image
+            src="/ticket-template.png"
+            alt=""
+            fill
+            priority
+            sizes="(max-width: 1024px) 100vw, 1024px"
+            className="object-cover"
+          />
 
-          <div className="px-6 pt-6 text-center">
-            <div className="text-xs uppercase tracking-wider text-[var(--ink-mute)]">Admit one</div>
-            <div className="text-xl font-semibold mt-1">{t.guestName}</div>
-            <div className="text-sm text-[var(--ink-mute)]">{t.sponsorName}</div>
-          </div>
-
-          <div className="px-6 py-5 flex justify-center">
-            <div className="bg-white border border-[var(--line)] rounded-lg p-3">
+          {/* Per-guest overlay on the right white half */}
+          <div className="absolute inset-0 flex pointer-events-none">
+            <div className="w-[45%] sm:w-1/2"/>
+            <div className="w-[55%] sm:w-1/2 flex flex-col items-center justify-end pb-[6%] px-[5%]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img id="ticket-qr" src={qrDataUrl} width={260} height={260} alt="Ticket QR" />
+              <img
+                id="ticket-qr"
+                src={qrDataUrl}
+                alt="Ticket QR"
+                className="w-[72%] sm:w-[55%] max-w-[280px] aspect-square bg-white p-1.5 rounded-md shadow-sm"
+              />
+              <div className="mt-3 text-center">
+                <div className="text-[10px] uppercase tracking-[0.25em] text-[#3a3937]/60">Admit one</div>
+                <div className="text-sm sm:text-base font-semibold mt-0.5 text-[#3a3937]">{t.guestName}</div>
+                {t.sponsorName && t.sponsorName !== t.guestName && (
+                  <div className="text-[10px] sm:text-xs text-[#3a3937]/60">{t.sponsorName}</div>
+                )}
+              </div>
             </div>
           </div>
 
           {t.checkedInAt && (
-            <div className="mx-6 mb-4 text-center text-sm bg-amber-50 text-amber-900 border border-amber-200 rounded-md p-2">
-              Already checked in at {new Date(t.checkedInAt).toLocaleString()}
+            <div className="absolute top-3 right-3 text-xs bg-amber-50 text-amber-900 border border-amber-200 rounded-md px-2.5 py-1 shadow-sm">
+              Already checked in · {new Date(t.checkedInAt).toLocaleTimeString()}
             </div>
           )}
+        </div>
 
-          <div className="px-6 pb-5 space-y-2 text-sm">
-            <Row label="Venue" value={EVENT.venue}/>
-            <Row label="Date" value={EVENT.date}/>
-            <Row label="Doors" value={EVENT.time}/>
-            <Row label="Code" value={t.ticketCode.slice(0, 8).toUpperCase()} mono/>
-          </div>
-
+        <div className="mt-3 max-w-md mx-auto">
           <TicketActions filename={`HFTF-${t.guestName.replace(/\s+/g, "_")}.png`} url={url}/>
         </div>
 
@@ -81,15 +88,6 @@ export default async function TicketPage({ params }: { params: Promise<{ code: s
           Show this QR at the door. One scan only — please don&apos;t share.
         </p>
       </div>
-    </div>
-  );
-}
-
-function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="flex justify-between border-t border-dashed border-[var(--line)] pt-2 first:border-t-0 first:pt-0">
-      <span className="text-[var(--ink-mute)]">{label}</span>
-      <span className={mono ? "font-mono text-xs" : "font-medium"}>{value}</span>
     </div>
   );
 }
