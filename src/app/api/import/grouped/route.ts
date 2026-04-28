@@ -64,16 +64,34 @@ type Plan = {
 //   4: Email          | 5: WhatsApp     | 6: Table No.       | 7: RSVP Status
 //   8: Guest Count    | 9: Payment Status | 10: BANK
 
-function parseTsv(text: string): string[][] {
+function parseTsv(text: string): { rows: string[][]; autoShifted: boolean } {
   const lines = text.split(/\r?\n/).filter(l => l.length > 0);
-  if (lines.length === 0) return [];
+  if (lines.length === 0) return { rows: [], autoShifted: false };
 
   // Auto-skip a header row if the first line's first cell looks like a header label.
   const firstCell = (lines[0].split("\t")[0] || "").trim().toLowerCase();
-  const isHeader = /^(full\s*name|name|guest(\s*name)?)$/.test(firstCell);
+  const isHeader = /^(full\s*name|name|guest(\s*name)?|n0|no\.?|#)$/.test(firstCell);
   const dataLines = isHeader ? lines.slice(1) : lines;
 
-  return dataLines.map(line => line.split("\t"));
+  let rows = dataLines.map(line => line.split("\t"));
+
+  // Detect a row-number column at position 0: if most rows have an empty or short-numeric
+  // first cell AND a non-empty second cell, drop column 0. This handles pastes that
+  // accidentally include the spreadsheet's row-number column.
+  let autoShifted = false;
+  if (rows.length >= 2) {
+    const matches = rows.filter(r => {
+      const c0 = (r[0] ?? "").trim();
+      const c1 = (r[1] ?? "").trim();
+      return (c0 === "" || /^\d{1,4}$/.test(c0)) && c1.length > 0;
+    }).length;
+    if (matches / rows.length >= 0.6) {
+      rows = rows.map(r => r.slice(1));
+      autoShifted = true;
+    }
+  }
+
+  return { rows, autoShifted };
 }
 
 function buildRows(data: string[][]): Row[] {
@@ -240,7 +258,17 @@ function buildPlan(rows: Row[]): Plan {
       last.rsvpYes += r.yes; last.rsvpNo += r.no; last.rsvpPending += r.pending;
 
       if (isPlaceholder) {
-        // Filler row — increase ticket count, don't add duplicate guest
+        // Filler row — repeated lead name. Treat as placeholder seats so the guest count
+        // reflects the row count, matching the registration form's "N seats = N guests".
+        for (let i = 0; i < additions; i++) {
+          last.guests.push({
+            name: `Guest ${last.guests.length + 1}`,
+            phone: null,
+            whatsappPhone: null,
+            email: null,
+            scheduled: row.rsvpStatus.trim() || null,
+          });
+        }
         if (!last.hasExplicitCount) last.ticketsBought += additions;
       } else {
         // Named guest under current sponsor
@@ -258,13 +286,20 @@ function buildPlan(rows: Row[]): Plan {
     const namesMatch = isRealCompany &&
       row.companyName.trim().toLowerCase() === leadName.toLowerCase();
     const resolvedType: "representative" | "company" = namesMatch ? "company" : "representative";
-    const sponsorName = isRealCompany ? row.companyName.trim() : leadName;
+    // Representative → sponsor record is named after the person (the rep), not the org.
+    //   The company name (if any) is preserved in notes so it stays visible.
+    // Company → sponsor record is named after the company.
+    const sponsorName = resolvedType === "company" ? row.companyName.trim() : leadName;
+    const repsFor = (resolvedType === "representative" && isRealCompany)
+      ? `Represents ${row.companyName.trim()}`
+      : null;
     const names = expandQuantity(leadName);
     const ticketCount = hasExplicitCount ? explicitCount : (qtyFromCompany ?? names.length);
     const r = bumpRsvp(row.rsvpStatus);
     // Representative → lead person attends as Guest 1 (with their contact info).
     // Company → no auto-attendance; only continuation rows fill the seats.
     const initialGuests = resolvedType === "representative" ? names.map(baseGuest) : [];
+    const notes = [repsFor, wa.givenTickets ? "Given tickets" : null].filter(Boolean).join(" · ") || null;
     list.push({
       name: sponsorName,
       leadName,
@@ -276,7 +311,7 @@ function buildPlan(rows: Row[]): Plan {
       assignedTo: row.assignedPerson.trim() || null,
       bank: row.bank.trim() || null,
       tableNumber: row.tableNumber.trim() || null,
-      notes: wa.givenTickets ? "Given tickets" : null,
+      notes,
       ticketsBought: ticketCount,
       hasExplicitCount,
       rsvpYes: r.yes, rsvpNo: r.no, rsvpPending: r.pending,
@@ -302,11 +337,14 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
   const { tsv, commit } = parsed.data;
-  const data = parseTsv(tsv);
+  const { rows: data, autoShifted } = parseTsv(tsv);
   if (data.length === 0) return NextResponse.json({ error: "No rows to parse" }, { status: 400 });
 
   const rows = buildRows(data);
   const plan = buildPlan(rows);
+  if (autoShifted) {
+    plan.warnings.unshift("Detected a row-number column in your paste — auto-shifted to align with the template.");
+  }
 
   if (!commit) {
     return NextResponse.json({ ok: true, plan });

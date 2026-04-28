@@ -45,6 +45,10 @@ export default function GuestRow({ guest, smsReady, sponsorName, sponsorPaid, va
     setBusy(null);
   }
   async function sendSms() {
+    if (!guest.phone) {
+      toast("This guest has no phone number — add one to send the SMS.", "error");
+      return;
+    }
     const alreadySent = guest.smsSentAt;
     const ok = await confirmDialog({
       title: alreadySent ? "SMS already sent" : "Send ticket SMS?",
@@ -136,7 +140,7 @@ export default function GuestRow({ guest, smsReady, sponsorName, sponsorPaid, va
           <button onClick={copyLink} className="btn btn-ghost btn-sm">
             <Copy size={14}/> {copied ? "Copied" : "Link"}
           </button>
-          {canSms && guest.phone && (
+          {canSms && (
             <button onClick={sendSms} disabled={busy !== null} className={`btn btn-sm ${guest.smsSentAt ? "btn-ghost" : "btn-outline"}`}>
               <Send size={14}/> {busy === "sms" ? "Sending…" : guest.smsSentAt ? "Resend" : "SMS"}
             </button>
@@ -194,7 +198,7 @@ export default function GuestRow({ guest, smsReady, sponsorName, sponsorPaid, va
       </td>
       <td className="text-right">
         <div className="inline-flex items-center gap-1 flex-wrap justify-end">
-          {canSms && guest.phone && (
+          {canSms && (
             <button onClick={sendSms} disabled={busy !== null} className={`btn btn-sm ${guest.smsSentAt ? "btn-ghost" : "btn-outline"}`} title="Send ticket SMS">
               <Send size={14}/> {busy === "sms" ? "Sending…" : guest.smsSentAt ? "Resend" : "SMS"}
             </button>
