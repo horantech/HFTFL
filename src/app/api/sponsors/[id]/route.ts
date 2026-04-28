@@ -12,6 +12,8 @@ const PatchBody = z.object({
   bank: z.string().max(200).nullable().optional(),
   assignedTo: z.string().max(200).nullable().optional(),
   rsvp: z.string().max(20).nullable().optional(),
+  tableNumber: z.string().max(40).nullable().optional(),
+  sponsorType: z.enum(["representative", "company"]).optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {

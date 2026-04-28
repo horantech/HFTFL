@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Html5Qrcode } from "html5-qrcode";
 import Link from "next/link";
-import { Check, AlertTriangle, X, Camera, RotateCw } from "lucide-react";
+import { Check, AlertTriangle, X, ScanLine, RotateCw } from "lucide-react";
 
 type Result =
   | { kind: "ok"; guestName: string; sponsorName: string; at: string }
@@ -16,11 +16,13 @@ export default function Scanner() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const lastCodeRef = useRef<{ code: string; at: number } | null>(null);
+  const blockedRef = useRef(false);
   const [result, setResult] = useState<Result | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function onDetected(decoded: string) {
+    if (blockedRef.current) return;
     const now = Date.now();
     const last = lastCodeRef.current;
     if (last && last.code === decoded && now - last.at < COOLDOWN_MS) return;
@@ -31,6 +33,7 @@ export default function Scanner() {
     if (match) code = match[1];
 
     if (!/^[0-9a-f-]{36}$/i.test(code)) {
+      blockedRef.current = true;
       setResult({ kind: "invalid", message: "Not a valid ticket QR" });
       beep("warn");
       return;
@@ -42,12 +45,14 @@ export default function Scanner() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ code }),
       });
-      const j = await res.json();
+      const j = await res.json().catch(() => ({}));
       if (!res.ok) {
+        blockedRef.current = true;
         setResult({ kind: "invalid", message: j.error || "Unknown ticket" });
         beep("warn");
         return;
       }
+      blockedRef.current = true;
       if (j.alreadyCheckedIn) {
         setResult({ kind: "already", guestName: j.guest.name, sponsorName: j.guest.sponsorName, at: j.guest.checkedInAt });
         beep("warn");
@@ -56,9 +61,16 @@ export default function Scanner() {
         beep("ok");
       }
     } catch {
+      blockedRef.current = true;
       setResult({ kind: "invalid", message: "Network error" });
       beep("warn");
     }
+  }
+
+  function dismiss() {
+    blockedRef.current = false;
+    lastCodeRef.current = null;
+    setResult(null);
   }
 
   async function start() {
@@ -74,9 +86,7 @@ export default function Scanner() {
       await scanner.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 260, height: 260 }, aspectRatio: 1.0 },
-        async (decoded) => {
-          await onDetected(decoded);
-        },
+        async (decoded) => { await onDetected(decoded); },
         () => { /* per-frame errors ignored */ },
       );
       setRunning(true);
@@ -101,80 +111,81 @@ export default function Scanner() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     start();
     return () => { stop(); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <div className="grid lg:grid-cols-[1.2fr_1fr] gap-6">
+    <div className="space-y-5 max-w-lg mx-auto mt-15">
       <div className="card card-pad-0 overflow-hidden">
-        <div className="px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
-          <div className="text-sm font-medium flex items-center gap-2"><Camera size={16}/> Camera</div>
-          <div className="flex items-center gap-2">
-            {running ? (
-              <button onClick={stop} className="btn btn-ghost text-sm"><X size={14}/> Stop</button>
-            ) : (
-              <button onClick={start} className="btn btn-primary text-sm"><RotateCw size={14}/> Start</button>
-            )}
-          </div>
-        </div>
-        <div className="p-3">
-          <div ref={containerRef} className="bg-black rounded-lg overflow-hidden min-h-[280px]" />
-          {error && <div className="text-sm text-red-700 mt-2">{error}</div>}
-          {!running && !error && (
-            <div className="text-sm text-[var(--ink-soft)] mt-2">
-              Camera will start automatically. If it doesn&apos;t, tap <strong>Start</strong>.
-              Make sure the page is served over HTTPS so the browser allows camera access.
-            </div>
+        <div className="px-3 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+          <div className="text-sm font-medium flex items-center gap-2"><ScanLine size={16}/> Scan tickets</div>
+          {running ? (
+            <button onClick={stop} className="btn btn-ghost btn-sm"><X size={14}/> Stop</button>
+          ) : (
+            <button onClick={start} className="btn btn-primary btn-sm"><RotateCw size={14}/> Start</button>
           )}
+        </div>
+        <div className="p-2 sm:p-3">
+          <div ref={containerRef} className="bg-black rounded-lg overflow-hidden aspect-square" />
+          {error && <div className="text-sm text-red-700 mt-2 px-1">{error}</div>}
         </div>
       </div>
 
-      <div>
-        <ResultPanel result={result} />
-        <div className="card mt-4">
-          <div className="text-xs uppercase tracking-[0.2em] text-[var(--ink-soft)] mb-1">Guest without QR?</div>
-          <div className="text-sm text-[var(--ink-soft)]">
-            Use the <Link className="underline" href="/people?filter=guests">People page</Link> to search by name or by company / CEO who brought them. You can also <Link className="underline" href="/people/new">add a walk-in</Link> on the spot.
-          </div>
-        </div>
+      <div className="text-center text-sm text-[var(--ink-soft)]">
+        No QR? <Link href="/people?filter=guests" className="underline text-[var(--ink)]">search in People page</Link>
       </div>
+
+      <ResultModal result={result} onClose={dismiss}/>
     </div>
   );
 }
 
-function ResultPanel({ result }: { result: Result | null }) {
-  if (!result) {
-    return (
-      <div className="card text-center text-[var(--ink-soft)]">
-        <div className="font-semiboldtext-lg">Ready to scan</div>
-        <div className="text-sm">Hold the QR code 10–20cm from the camera.</div>
-      </div>
-    );
-  }
-  if (result.kind === "ok") {
-    return (
-      <div className="card border-green-300 bg-green-50">
-        <div className="flex items-center gap-2 text-green-800"><Check size={18}/><span className="font-medium">Checked in</span></div>
-        <div className="font-semiboldtext-2xl mt-1">{result.guestName}</div>
-        <div className="text-sm text-green-900/70">{result.sponsorName}</div>
-        <div className="text-xs text-green-900/60 mt-1">{new Date(result.at).toLocaleTimeString()}</div>
-      </div>
-    );
-  }
-  if (result.kind === "already") {
-    return (
-      <div className="card border-amber-300 bg-amber-50">
-        <div className="flex items-center gap-2 text-amber-800"><AlertTriangle size={18}/><span className="font-medium">Already checked in</span></div>
-        <div className="font-semiboldtext-2xl mt-1">{result.guestName}</div>
-        <div className="text-sm text-amber-900/70">{result.sponsorName}</div>
-        <div className="text-xs text-amber-900/60 mt-1">at {new Date(result.at).toLocaleTimeString()}</div>
-      </div>
-    );
-  }
+function ResultModal({ result, onClose }: { result: Result | null; onClose: () => void }) {
+  useEffect(() => {
+    if (!result) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === "Enter") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [result, onClose]);
+
+  if (!result) return null;
+
+  const styles =
+    result.kind === "ok"
+      ? { ring: "border-green-300", tint: "bg-green-50", chipBg: "bg-green-100", chipInk: "text-green-800", icon: <Check size={28} className="text-green-700"/>, label: "Checked in" }
+      : result.kind === "already"
+        ? { ring: "border-amber-300", tint: "bg-amber-50", chipBg: "bg-amber-100", chipInk: "text-amber-800", icon: <AlertTriangle size={28} className="text-amber-700"/>, label: "Already checked in" }
+        : { ring: "border-red-300", tint: "bg-red-50", chipBg: "bg-red-100", chipInk: "text-red-800", icon: <X size={28} className="text-red-700"/>, label: "Invalid ticket" };
+
   return (
-    <div className="card border-red-300 bg-red-50">
-      <div className="flex items-center gap-2 text-red-800"><X size={18}/><span className="font-medium">Invalid</span></div>
-      <div className="text-sm mt-1">{result.message}</div>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div onClick={onClose} className="absolute inset-0 bg-black/50"/>
+      <div className={`relative w-full max-w-sm rounded-xl border-2 ${styles.ring} bg-white shadow-2xl overflow-hidden`}>
+        <div className={`${styles.tint} px-5 py-6 text-center`}>
+          <div className={`mx-auto inline-flex items-center justify-center h-14 w-14 rounded-full ${styles.chipBg}`}>
+            {styles.icon}
+          </div>
+          <div className={`mt-2 text-sm font-medium ${styles.chipInk}`}>{styles.label}</div>
+          {result.kind === "invalid" ? (
+            <div className="mt-2 text-base text-[var(--ink)]">{result.message}</div>
+          ) : (
+            <>
+              <div className="mt-2 text-xl sm:text-2xl font-semibold leading-tight break-words">{result.guestName}</div>
+              {result.sponsorName && result.sponsorName !== result.guestName && (
+                <div className="text-sm text-[var(--ink-mute)] mt-0.5 break-words">{result.sponsorName}</div>
+              )}
+              <div className="text-xs text-[var(--ink-mute)] mt-1.5">{new Date(result.at).toLocaleTimeString()}</div>
+            </>
+          )}
+        </div>
+        <div className="p-3">
+          <button onClick={onClose} autoFocus className="btn btn-primary w-full">
+            Done
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

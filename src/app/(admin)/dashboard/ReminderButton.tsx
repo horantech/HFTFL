@@ -17,14 +17,14 @@ export default function ReminderButton() {
     setBusy(true);
     try {
       const r = await fetch("/api/sms/reminder-all", { method: "POST" });
-      const j = await r.json();
+      const j = await r.json().catch(() => ({}));
       if (!r.ok) { toast(j.error || "Failed to send reminders", "error"); return; }
       toast(`Sent ${j.sent} · failed ${j.failed} · skipped ${j.skipped}`, "success");
     } finally { setBusy(false); }
   }
   return (
-    <button onClick={send} disabled={busy} className="btn btn-outline btn-lg">
-      <Send size={18}/> {busy ? "Sending…" : "Send reminder"}
+    <button onClick={send} disabled={busy} className="btn btn-outline">
+      <Send size={16}/> {busy ? "Sending…" : "Send reminder"}
     </button>
   );
 }

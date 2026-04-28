@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { guests, sponsors } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { sendSms, buildGuestMessage, buildSponsorMessage, isSmsConfigured } from "@/lib/sms";
+import { sendSms, buildGuestMessage, isSmsConfigured } from "@/lib/sms";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -13,15 +13,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     const [sponsor] = await db
       .select({
-        id: sponsors.id,
-        name: sponsors.name,
-        contactPhone: sponsors.contactPhone,
-        isIndividual: sponsors.isIndividual,
+        paid: sponsors.paid,
+        tableNumber: sponsors.tableNumber,
       })
       .from(sponsors)
       .where(eq(sponsors.id, id))
       .limit(1);
     if (!sponsor) return NextResponse.json({ error: "Sponsor not found" }, { status: 404 });
+    if (!sponsor.paid) return NextResponse.json({ error: "Sponsor is not paid" }, { status: 400 });
 
     const list = await db
       .select()
@@ -34,18 +33,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     for (const g of list) {
       if (!g.phone) continue;
       if (onlyPending && g.smsSentAt) continue;
-      const res = await sendSms(g.phone, buildGuestMessage({ name: g.name, code: g.ticketCode }));
+      const res = await sendSms(g.phone, buildGuestMessage({ name: g.name, code: g.ticketCode, tableNumber: sponsor.tableNumber }));
       if (res.ok) { sent++; sentIds.push(g.id); }
       else { failed++; }
-    }
-
-    if (sponsor.contactPhone && !sponsor.isIndividual) {
-      const res = await sendSms(
-        sponsor.contactPhone,
-        buildSponsorMessage({ name: sponsor.name, guestCount: list.length, firstCode: list[0]?.ticketCode }),
-      );
-      if (res.ok) sent++;
-      else failed++;
     }
 
     for (const gid of sentIds) {

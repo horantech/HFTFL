@@ -12,6 +12,8 @@ type EditableSponsor = {
   bank: string | null;
   assignedTo: string | null;
   rsvp: string | null;
+  tableNumber: string | null;
+  sponsorType: string;
 };
 
 export default function SponsorEditForm({ sponsor }: { sponsor: EditableSponsor }) {
@@ -24,6 +26,10 @@ export default function SponsorEditForm({ sponsor }: { sponsor: EditableSponsor 
   const [bank, setBank] = useState(sponsor.bank ?? "");
   const [assignedTo, setAssignedTo] = useState(sponsor.assignedTo ?? "");
   const [rsvp, setRsvp] = useState(sponsor.rsvp ?? "");
+  const [tableNumber, setTableNumber] = useState(sponsor.tableNumber ?? "");
+  const [sponsorType, setSponsorType] = useState<"representative" | "company">(
+    (sponsor.sponsorType === "company" ? "company" : "representative")
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,6 +47,8 @@ export default function SponsorEditForm({ sponsor }: { sponsor: EditableSponsor 
         bank: bank.trim() || null,
         assignedTo: assignedTo.trim() || null,
         rsvp: rsvp || null,
+        tableNumber: tableNumber.trim() || null,
+        sponsorType,
       }),
     });
     if (!res.ok) {
@@ -61,6 +69,8 @@ export default function SponsorEditForm({ sponsor }: { sponsor: EditableSponsor 
     setBank(sponsor.bank ?? "");
     setAssignedTo(sponsor.assignedTo ?? "");
     setRsvp(sponsor.rsvp ?? "");
+    setTableNumber(sponsor.tableNumber ?? "");
+    setSponsorType(sponsor.sponsorType === "company" ? "company" : "representative");
     setEditing(false);
     setError(null);
   }
@@ -77,6 +87,13 @@ export default function SponsorEditForm({ sponsor }: { sponsor: EditableSponsor 
     <div className="card w-full space-y-3">
       <div className="text-sm font-semibold">Edit sponsor details</div>
       <div className="grid sm:grid-cols-2 gap-3">
+        <div>
+          <label className="label">Sponsor type</label>
+          <select className="input" value={sponsorType} onChange={e => setSponsorType(e.target.value as "representative" | "company")}>
+            <option value="representative">Representative (person)</option>
+            <option value="company">Company / Organization</option>
+          </select>
+        </div>
         <div>
           <label className="label">Name</label>
           <input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="Name"/>
@@ -105,6 +122,10 @@ export default function SponsorEditForm({ sponsor }: { sponsor: EditableSponsor 
             <option value="No">No</option>
             <option value="Pending">Pending</option>
           </select>
+        </div>
+        <div>
+          <label className="label">Table number</label>
+          <input className="input" value={tableNumber} onChange={e => setTableNumber(e.target.value)} placeholder="e.g. 12 or VIP-3"/>
         </div>
         <div className="sm:col-span-2">
           <label className="label">Notes</label>

@@ -15,12 +15,14 @@ type PlannedGuest = {
 
 type PlannedSponsor = {
   name: string;
+  sponsorType: "representative" | "company";
   isIndividual: boolean;
   contactPhone: string | null;
   contactEmail: string | null;
   paid: boolean;
   assignedTo: string | null;
   bank: string | null;
+  tableNumber: string | null;
   notes: string | null;
   ticketsBought: number;
   rsvpYes: number;
@@ -83,12 +85,17 @@ export default function GroupedImportForm() {
     <div className="space-y-4">
       <div className="card space-y-3">
         <label className="label">Paste tab-separated rows (copy from Excel)</label>
+        <div className="text-xs text-[var(--ink-mute)]">
+          Column order:{" "}
+          <code className="bg-[var(--bg)] px-1 rounded">Full Name · Company Name · Assigned Person · Phone · Email · WhatsApp · Table No. · RSVP · Guest Count · Payment · Bank</code>
+          . A header row, if pasted, is skipped automatically.
+        </div>
         <textarea
           className="input font-mono text-xs"
           rows={12}
           value={tsv}
           onChange={e => setTsv(e.target.value)}
-          placeholder={"N0\tFull Name\tCompany Name\tAssigned Person\tPhone No\tEmail\tWhatsApp\tTicket No.\tRSVP Status\tGuest Count\tPayment Status\tBANK\n1\tBelay T. Gebru\t\tBelay\t911941261\tbelay@example.com\t\t\tYes\t10\tPaid\t"}
+          placeholder={"Belay T. Gebru\tHope For the Fatherless\tBelay\t911941261\tbelay@example.com\t911941261\t1\tYes\t10\tPaid\t\nKoki Kidane\t\t\t\t\t\t\tYes\t\tPaid\t"}
         />
         <div className="flex gap-2 justify-end">
           <button onClick={preview} disabled={!tsv.trim() || busy !== null} className="btn btn-outline w-full sm:w-auto">
@@ -126,13 +133,14 @@ export default function GroupedImportForm() {
           </div>
 
           <div className="card card-pad-0 overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="scroll-x">
             <table className="table min-w-[840px]">
               <thead>
                 <tr>
                   <th>Sponsor</th>
                   <th>Type</th>
                   <th>Phone</th>
+                  <th>Table</th>
                   <th>Paid</th>
                   <th>RSVP</th>
                   <th>Assigned</th>
@@ -145,8 +153,15 @@ export default function GroupedImportForm() {
                 {plan.sponsors.map((s, i) => (
                   <tr key={i}>
                     <td className="font-medium">{s.name}</td>
-                    <td>{s.isIndividual ? <span className="badge">Individual</span> : <span className="badge badge-ink">Sponsor</span>}</td>
+                    <td>
+                      {s.isIndividual
+                        ? <span className="badge">Individual</span>
+                        : s.sponsorType === "company"
+                          ? <span className="badge badge-ink">Company</span>
+                          : <span className="badge">Representative</span>}
+                    </td>
                     <td className="text-[var(--ink-mute)] text-xs">{s.contactPhone || "—"}</td>
+                    <td className="text-xs">{s.tableNumber ? <span className="badge badge-success">{s.tableNumber}</span> : "—"}</td>
                     <td>{s.paid ? <span className="badge badge-success">Paid</span> : <span className="badge">Unpaid</span>}</td>
                     <td className="text-xs">{rsvpLabel(s)}</td>
                     <td className="text-[var(--ink-mute)] text-xs">{s.assignedTo || "—"}</td>

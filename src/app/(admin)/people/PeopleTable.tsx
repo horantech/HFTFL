@@ -159,7 +159,7 @@ export default function PeopleTable({
   async function smsSponsor(id: string) {
     const ok = await confirmDialog({
       title: "Send ticket SMS?",
-      message: "This sends ticket SMS to the sponsor and all their guests.",
+      message: "This sends a ticket SMS to every guest under this sponsor.",
       confirmLabel: "Send",
     });
     if (!ok) return;
@@ -248,22 +248,24 @@ export default function PeopleTable({
   const modal = <TicketModal data={ticketModal} onClose={() => setTicketModal(null)}/>;
 
   const searchHeader = (
-    <div className="p-3 border-b border-[var(--line)] flex flex-col sm:flex-row gap-2 sm:items-center">
-      <div className="flex items-center gap-2 flex-1">
-        <Search size={16} className="text-[var(--ink-mute)] ml-1"/>
+    <div className="border-b border-[var(--line)]">
+      <div className="px-3 py-2 flex items-center gap-2">
+        <Search size={16} className="text-[var(--ink-mute)] flex-shrink-0"/>
         <input
           autoFocus={false}
           value={q}
           onChange={e => setQ(e.target.value)}
-          placeholder="Search guest, sponsor, phone, email…"
-          className="input border-0 px-0 flex-1"
+          placeholder="Search guest, sponsor, phone…"
+          className="input border-0 px-0 flex-1 min-w-0"
           style={{ boxShadow: "none" }}
         />
         {q && (
-          <button onClick={() => setQ("")} className="btn btn-ghost btn-sm" aria-label="Clear search">Clear</button>
+          <button onClick={() => setQ("")} className="btn btn-ghost btn-sm flex-shrink-0" aria-label="Clear search">Clear</button>
         )}
       </div>
-      <FilterChipsInline current={filter}/>
+      <div className="px-3 pb-2">
+        <FilterChipsInline current={filter}/>
+      </div>
     </div>
   );
 
@@ -312,7 +314,7 @@ export default function PeopleTable({
           </div>
         ))}
       </div>
-      <div className="hidden md:block overflow-x-auto">
+      <div className="hidden md:block scroll-x">
         <table className="table">
           <thead>
             <tr>
@@ -624,7 +626,7 @@ function FilterChipsInline({ current }: { current: Filter }) {
     { key: "pending", label: "Pending" },
   ];
   return (
-    <div className="flex items-center gap-1 overflow-x-auto">
+    <div className="flex items-center gap-1 scroll-x -mx-1 px-1 pb-0.5">
       {items.map(it => {
         const href = it.key === "all" ? "/people" : `/people?filter=${it.key}`;
         const active = current === it.key;

@@ -40,27 +40,27 @@ export default async function TicketPage({ params }: { params: Promise<{ code: s
   return (
     <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-4">
       <div className="w-full max-w-5xl">
-        <div id="ticket-capture" className="relative aspect-[5/4] sm:aspect-[16/9] bg-white shadow-xl rounded-xl overflow-hidden">
+        <div id="ticket-capture" className="relative aspect-[16/9] bg-white shadow-xl rounded-xl overflow-hidden">
           {/* Static design (kid photo, date, venue, "a Night of HOPE" lockup) */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/ticket-template.png" alt="" className="absolute inset-0 w-full h-full object-cover"/>
 
           {/* Per-guest overlay on the right white half */}
           <div className="absolute inset-0 flex pointer-events-none">
-            <div className="w-[45%] sm:w-1/2"/>
-            <div className="w-[55%] sm:w-1/2 flex flex-col items-center justify-end pb-[6%] px-[5%]">
+            <div className="w-1/2"/>
+            <div className="w-1/2 flex flex-col items-center justify-end pb-[6%] px-[5%]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 id="ticket-qr"
                 src={qrDataUrl}
                 alt="Ticket QR"
-                className="w-[72%] sm:w-[55%] max-w-[280px] aspect-square bg-white p-1.5 rounded-md shadow-sm"
+                className="w-[55%] max-w-[280px] aspect-square bg-white p-1.5 rounded-md shadow-sm"
               />
-              <div className="mt-3 text-center">
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[#3a3937]/60">Admit one</div>
-                <div className="text-sm sm:text-base font-semibold mt-0.5 text-[#3a3937]">{t.guestName}</div>
+              <div className="mt-2 sm:mt-3 text-center">
+                <div className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] sm:tracking-[0.25em] text-[#3a3937]/60">Admit one</div>
+                <div className="text-[11px] sm:text-base font-semibold mt-0.5 text-[#3a3937] leading-tight">{t.guestName}</div>
                 {t.sponsorName && t.sponsorName !== t.guestName && (
-                  <div className="text-[10px] sm:text-xs text-[#3a3937]/60">{t.sponsorName}</div>
+                  <div className="text-[9px] sm:text-xs text-[#3a3937]/60">{t.sponsorName}</div>
                 )}
               </div>
             </div>

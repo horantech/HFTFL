@@ -13,6 +13,7 @@ export async function POST() {
         name: guests.name,
         phone: guests.phone,
         ticketCode: guests.ticketCode,
+        tableNumber: sponsors.tableNumber,
       })
       .from(guests)
       .innerJoin(sponsors, eq(sponsors.id, guests.sponsorId))
@@ -20,7 +21,7 @@ export async function POST() {
     let sent = 0, failed = 0, skipped = 0;
     for (const g of list) {
       if (!g.phone) { skipped++; continue; }
-      const r = await sendSms(g.phone, buildReminderMessage({ name: g.name, code: g.ticketCode }));
+      const r = await sendSms(g.phone, buildReminderMessage({ name: g.name, code: g.ticketCode, tableNumber: g.tableNumber }));
       if (r.ok) sent++; else failed++;
     }
     return NextResponse.json({ ok: true, sent, failed, skipped });

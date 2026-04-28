@@ -10,11 +10,13 @@ const Body = z.object({
   contactPhone: z.string().max(40).optional().nullable(),
   contactEmail: z.string().max(200).optional().nullable(),
   isIndividual: z.boolean().optional().default(false),
+  sponsorType: z.enum(["representative", "company"]).optional().default("representative"),
   paid: z.boolean().optional().default(false),
   notes: z.string().max(2000).optional().nullable(),
   bank: z.string().max(200).optional().nullable(),
   assignedTo: z.string().max(200).optional().nullable(),
   rsvp: z.string().max(20).optional().nullable(),
+  tableNumber: z.string().max(40).optional().nullable(),
   guests: z.array(z.object({
     name: z.string().min(1).max(200),
     phone: z.string().max(40).optional().nullable(),
@@ -37,11 +39,13 @@ export async function POST(req: Request) {
       contactPhone: normalizePhone(v.contactPhone),
       contactEmail: v.contactEmail?.trim() || null,
       isIndividual: v.isIndividual ?? false,
+      sponsorType: v.sponsorType ?? "representative",
       paid: v.paid ?? false,
       notes: v.notes?.trim() || null,
       bank: v.bank?.trim() || null,
       assignedTo: v.assignedTo?.trim() || null,
       rsvp: v.rsvp || null,
+      tableNumber: v.tableNumber?.trim() || null,
     })
     .returning({ id: sponsors.id });
 

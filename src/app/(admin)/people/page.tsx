@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/db";
 import { sponsors, guests } from "@/db/schema";
-import { sql, desc, eq, count } from "drizzle-orm";
+import { desc, eq, count } from "drizzle-orm";
 import { UserPlus, User } from "lucide-react";
 import PeopleTable from "./PeopleTable";
 
@@ -60,13 +60,13 @@ export default async function PeoplePage({
   const { sponsorRows, guestRows } = await loadData();
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-end justify-between flex-wrap gap-3">
+    <div className="space-y-4 sm:space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">People</h1>
           <p className="text-sm text-[var(--ink-mute)] mt-0.5">Sponsors and the guests they brought, in one place.</p>
         </div>
-        <div className="flex gap-2 flex-wrap w-full sm:w-auto">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <Link href="/people/new-individual" className="btn btn-outline"><User size={16}/> Add individual</Link>
           <Link href="/people/new" className="btn btn-primary"><UserPlus size={16}/> New sponsor</Link>
         </div>

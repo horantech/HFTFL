@@ -11,13 +11,13 @@ const Body = z.object({
 
 type Row = {
   rowIndex: number;
-  n0: string;
   fullName: string;
   companyName: string;
   assignedPerson: string;
   phone: string;
   email: string;
   whatsapp: string;
+  tableNumber: string;
   rsvpStatus: string;
   guestCount: string;
   paymentStatus: string;
@@ -35,12 +35,14 @@ type PlannedGuest = {
 type PlannedSponsor = {
   name: string;
   leadName: string;
+  sponsorType: "representative" | "company";
   isIndividual: boolean;
   contactPhone: string | null;
   contactEmail: string | null;
   paid: boolean;
   assignedTo: string | null;
   bank: string | null;
+  tableNumber: string | null;
   notes: string | null;
   ticketsBought: number;
   hasExplicitCount: boolean;
@@ -55,54 +57,40 @@ type Plan = {
   warnings: string[];
 };
 
-const HEADER_ALIASES: Record<string, keyof Row> = {
-  "n0": "n0", "no": "n0", "no.": "n0", "#": "n0",
-  "full name": "fullName", "name": "fullName", "guest": "fullName", "guest name": "fullName",
-  "company name": "companyName", "company": "companyName",
-  "assigned person": "assignedPerson", "assigned": "assignedPerson", "assignee": "assignedPerson",
-  "phone no": "phone", "phone": "phone", "phone number": "phone", "mobile": "phone",
-  "email": "email", "e-mail": "email",
-  "whatsapp": "whatsapp",
-  "ticket no.": "rsvpStatus" as keyof Row, // unused, but parsed
-  "rsvp status": "rsvpStatus", "rsvp": "rsvpStatus", "scheduled": "rsvpStatus",
-  "guest count": "guestCount",
-  "payment status": "paymentStatus", "payment": "paymentStatus", "paid": "paymentStatus",
-  "bank": "bank",
-};
+// Fixed positional column layout. Paste from Excel must follow this column order
+// (matching the master spreadsheet template). A header row, if present, is auto-skipped.
+//
+//   0: Full Name      | 1: Company Name | 2: Assigned Person | 3: Phone No
+//   4: Email          | 5: WhatsApp     | 6: Table No.       | 7: RSVP Status
+//   8: Guest Count    | 9: Payment Status | 10: BANK
 
-function parseTsv(text: string): { headers: string[]; rows: string[][] } {
-  const lines = text.split(/\r?\n/);
-  if (lines.length === 0) return { headers: [], rows: [] };
-  // Find header line: the first line containing "name" or "full name"
-  let headerIdx = 0;
-  for (let i = 0; i < lines.length; i++) {
-    const lower = lines[i].toLowerCase();
-    if (/full\s*name/.test(lower) || /\bname\b/.test(lower)) { headerIdx = i; break; }
-  }
-  const split = (line: string) => line.split("\t");
-  const headers = split(lines[headerIdx]).map(h => h.trim().toLowerCase());
-  const rows = lines.slice(headerIdx + 1).map(split);
-  return { headers, rows };
+function parseTsv(text: string): string[][] {
+  const lines = text.split(/\r?\n/).filter(l => l.length > 0);
+  if (lines.length === 0) return [];
+
+  // Auto-skip a header row if the first line's first cell looks like a header label.
+  const firstCell = (lines[0].split("\t")[0] || "").trim().toLowerCase();
+  const isHeader = /^(full\s*name|name|guest(\s*name)?)$/.test(firstCell);
+  const dataLines = isHeader ? lines.slice(1) : lines;
+
+  return dataLines.map(line => line.split("\t"));
 }
 
-function buildRows(headers: string[], data: string[][]): Row[] {
-  const empty: Row = {
-    rowIndex: 0, n0: "", fullName: "", companyName: "", assignedPerson: "",
-    phone: "", email: "", whatsapp: "", rsvpStatus: "",
-    guestCount: "", paymentStatus: "", bank: "",
-  };
-  const fieldMap = headers.map(h => HEADER_ALIASES[h] || null);
-  return data.map((cells, i) => {
-    const r: Row = { ...empty, rowIndex: i + 1 };
-    for (let c = 0; c < headers.length; c++) {
-      const v = (cells[c] ?? "").trim();
-      const k = fieldMap[c];
-      if (k && k !== "rowIndex") {
-        (r as Record<keyof Row, string | number>)[k] = v;
-      }
-    }
-    return r;
-  });
+function buildRows(data: string[][]): Row[] {
+  return data.map((cells, i) => ({
+    rowIndex: i + 1,
+    fullName: (cells[0] ?? "").trim(),
+    companyName: (cells[1] ?? "").trim(),
+    assignedPerson: (cells[2] ?? "").trim(),
+    phone: (cells[3] ?? "").trim(),
+    email: (cells[4] ?? "").trim(),
+    whatsapp: (cells[5] ?? "").trim(),
+    tableNumber: (cells[6] ?? "").trim(),
+    rsvpStatus: (cells[7] ?? "").trim(),
+    guestCount: (cells[8] ?? "").trim(),
+    paymentStatus: (cells[9] ?? "").trim(),
+    bank: (cells[10] ?? "").trim(),
+  }));
 }
 
 function isPaid(s: string): boolean {
@@ -142,12 +130,6 @@ function normalizeNameKey(name: string): string {
   return name.toLowerCase().replace(/[\s\/.,]+/g, "").replace(/[^\w]/g, "");
 }
 
-function looksLikePhoneInN0(s: string): boolean {
-  if (!s) return false;
-  const digits = s.replace(/\D/g, "");
-  return digits.length >= 8;
-}
-
 function extractWhatsapp(s: string): { whatsapp: string | null; givenTickets: boolean } {
   if (!s) return { whatsapp: null, givenTickets: false };
   if (/given\s*tickets?/i.test(s)) return { whatsapp: null, givenTickets: true };
@@ -166,18 +148,39 @@ function buildPlan(rows: Row[]): Plan {
       continue;
     }
 
-    // Detect misplaced phone in N0 column
-    if (looksLikePhoneInN0(row.n0)) {
-      warnings.push(`Row ${row.rowIndex}: phone-like value "${row.n0}" in N0 column — skipped`);
-      continue;
-    }
-
     const hasName = !!row.fullName.trim();
     const hasCompany = !!row.companyName.trim();
-    const hasAnyData = hasName || hasCompany || !!row.phone.trim() || !!row.email.trim();
+    const hasContact = !!row.phone.trim() || !!row.email.trim();
+    const hasMeta = !!row.rsvpStatus.trim() || !!row.paymentStatus.trim() || !!row.bank.trim();
+    const hasAnyData = hasName || hasCompany || hasContact || hasMeta;
 
     if (!hasAnyData) continue;
-    if (!hasName) continue; // can't make a guest without a name
+
+    // Blank-name rows: treat as placeholder seat slots under the previous sponsor.
+    // This mirrors the "number of seats" behavior in NewSponsorForm — the seat is reserved
+    // even before the guest name is known.
+    if (!hasName) {
+      const last = list[list.length - 1];
+      if (!last || inIndividualSection) continue; // nothing to attach to
+      const wa = extractWhatsapp(row.whatsapp);
+      if (isPaid(row.paymentStatus)) last.paid = true;
+      if (!last.bank && row.bank.trim()) last.bank = row.bank.trim();
+      if (wa.givenTickets && !last.notes?.includes("Given tickets")) {
+        last.notes = [last.notes, "Given tickets"].filter(Boolean).join(" · ");
+      }
+      const r = bumpRsvp(row.rsvpStatus);
+      last.rsvpYes += r.yes; last.rsvpNo += r.no; last.rsvpPending += r.pending;
+
+      last.guests.push({
+        name: `Guest ${last.guests.length + 1}`,
+        phone: null,
+        whatsappPhone: null,
+        email: null,
+        scheduled: row.rsvpStatus.trim() || null,
+      });
+      if (!last.hasExplicitCount) last.ticketsBought += 1;
+      continue;
+    }
 
     const wa = extractWhatsapp(row.whatsapp);
     const baseGuest = (name: string): PlannedGuest => ({
@@ -195,12 +198,14 @@ function buildPlan(rows: Row[]): Plan {
         list.push({
           name,
           leadName: name,
+          sponsorType: "representative",
           isIndividual: true,
           contactPhone: normalizePhone(row.phone) || null,
           contactEmail: row.email.trim() || null,
           paid: isPaid(row.paymentStatus),
           assignedTo: row.assignedPerson.trim() || null,
           bank: row.bank.trim() || null,
+          tableNumber: row.tableNumber.trim() || null,
           notes: wa.givenTickets ? "Given tickets" : null,
           ticketsBought: 1,
           hasExplicitCount: false,
@@ -248,29 +253,44 @@ function buildPlan(rows: Row[]): Plan {
 
     // Brand new sponsor group
     const leadName = row.fullName.trim();
+    // Type rule: Company only when Full Name == Company Name (case-insensitive, trimmed).
+    // Anything else is a Representative — the named person attends as Guest 1.
+    const namesMatch = isRealCompany &&
+      row.companyName.trim().toLowerCase() === leadName.toLowerCase();
+    const resolvedType: "representative" | "company" = namesMatch ? "company" : "representative";
     const sponsorName = isRealCompany ? row.companyName.trim() : leadName;
     const names = expandQuantity(leadName);
     const ticketCount = hasExplicitCount ? explicitCount : (qtyFromCompany ?? names.length);
     const r = bumpRsvp(row.rsvpStatus);
-    // When sponsor name equals the lead person's name (no separate company), the lead is the
-    // buyer themselves — don't duplicate them as a guest. When there's a real company name, the
-    // lead is a person attending under that company, so they ARE a guest.
-    const initialGuests = isRealCompany ? names.map(baseGuest) : [];
+    // Representative → lead person attends as Guest 1 (with their contact info).
+    // Company → no auto-attendance; only continuation rows fill the seats.
+    const initialGuests = resolvedType === "representative" ? names.map(baseGuest) : [];
     list.push({
       name: sponsorName,
       leadName,
+      sponsorType: resolvedType,
       isIndividual: false,
       contactPhone: normalizePhone(row.phone) || null,
       contactEmail: row.email.trim() || null,
       paid: isPaid(row.paymentStatus),
       assignedTo: row.assignedPerson.trim() || null,
       bank: row.bank.trim() || null,
+      tableNumber: row.tableNumber.trim() || null,
       notes: wa.givenTickets ? "Given tickets" : null,
       ticketsBought: ticketCount,
       hasExplicitCount,
       rsvpYes: r.yes, rsvpNo: r.no, rsvpPending: r.pending,
       guests: initialGuests,
     });
+  }
+
+  // Cross-check resolved guest count vs explicit Guest Count
+  for (const s of list) {
+    if (s.hasExplicitCount && s.ticketsBought !== s.guests.length) {
+      warnings.push(
+        `${s.name}: Guest Count says ${s.ticketsBought} but ${s.guests.length} row${s.guests.length === 1 ? "" : "s"} resolved. Review before importing.`,
+      );
+    }
   }
 
   return { sponsors: list, warnings };
@@ -282,10 +302,10 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
   const { tsv, commit } = parsed.data;
-  const { headers, rows: data } = parseTsv(tsv);
-  if (headers.length === 0) return NextResponse.json({ error: "Could not find header row" }, { status: 400 });
+  const data = parseTsv(tsv);
+  if (data.length === 0) return NextResponse.json({ error: "No rows to parse" }, { status: 400 });
 
-  const rows = buildRows(headers, data);
+  const rows = buildRows(data);
   const plan = buildPlan(rows);
 
   if (!commit) {
@@ -305,9 +325,11 @@ export async function POST(req: Request) {
       contactPhone: s.contactPhone,
       contactEmail: s.contactEmail,
       isIndividual: s.isIndividual,
+      sponsorType: s.sponsorType,
       paid: s.paid,
       assignedTo: s.assignedTo,
       bank: s.bank,
+      tableNumber: s.tableNumber,
       notes: finalNotes,
     }).returning({ id: sponsors.id });
     createdSponsors++;

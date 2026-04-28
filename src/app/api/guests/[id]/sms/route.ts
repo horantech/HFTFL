@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { guests } from "@/db/schema";
+import { guests, sponsors } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { sendSms, buildGuestMessage, isSmsConfigured } from "@/lib/sms";
 
@@ -12,7 +12,14 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     if (!g) return NextResponse.json({ error: "Guest not found" }, { status: 404 });
     if (!g.phone) return NextResponse.json({ error: "Guest has no phone number" }, { status: 400 });
 
-    const res = await sendSms(g.phone, buildGuestMessage({ name: g.name, code: g.ticketCode }));
+    const [sponsor] = await db
+      .select({ paid: sponsors.paid, tableNumber: sponsors.tableNumber })
+      .from(sponsors)
+      .where(eq(sponsors.id, g.sponsorId))
+      .limit(1);
+    if (!sponsor?.paid) return NextResponse.json({ error: "Sponsor is not paid" }, { status: 400 });
+
+    const res = await sendSms(g.phone, buildGuestMessage({ name: g.name, code: g.ticketCode, tableNumber: sponsor.tableNumber }));
     if (!res.ok) return NextResponse.json({ error: res.error }, { status: 502 });
     await db.update(guests).set({ smsSentAt: new Date() }).where(eq(guests.id, id));
     return NextResponse.json({ ok: true, sid: res.sid });

@@ -14,11 +14,12 @@ type Props = {
   sponsorPhone: string | null;
   sponsorHasTicket: boolean;
   isIndividual: boolean;
+  paid: boolean;
 };
 
 export default function SponsorActions({
   sponsorId, smsReady, guestCount,
-  sponsorName, sponsorPhone, sponsorHasTicket, isIndividual,
+  sponsorName, sponsorPhone, sponsorHasTicket, isIndividual, paid,
 }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export default function SponsorActions({
   async function smsAll() {
     const ok = await confirmDialog({
       title: "Send ticket SMS?",
-      message: `This sends ticket SMS to the sponsor and all ${guestCount} guest${guestCount === 1 ? "" : "s"}.`,
+      message: `This sends a ticket SMS to all ${guestCount} guest${guestCount === 1 ? "" : "s"}.`,
       confirmLabel: "Send",
     });
     if (!ok) return;
@@ -75,13 +76,13 @@ export default function SponsorActions({
   }
 
   return (
-    <div className="flex items-center gap-2 flex-wrap">
+    <div className="grid grid-cols-1 sm:flex sm:items-center gap-2 sm:flex-wrap w-full sm:w-auto">
       {!sponsorHasTicket && !isIndividual && (
         <button onClick={addSponsorAsGuest} disabled={busy !== null} className="btn btn-outline">
           <Ticket size={16}/> {busy === "ticket" ? "Generating…" : `Ticket for ${sponsorName}`}
         </button>
       )}
-      {smsReady && guestCount > 0 && (
+      {smsReady && guestCount > 0 && paid && (
         <button onClick={smsAll} disabled={busy !== null} className="btn btn-primary">
           <Send size={16}/> {busy === "sms" ? "Sending…" : "Send SMS to all"}
         </button>

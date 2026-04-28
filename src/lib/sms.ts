@@ -16,25 +16,23 @@ function ticketUrl(code: string) {
   return `${base.replace(/\/$/, "")}/t/${code}`;
 }
 
-export function buildGuestMessage(opts: { name: string; code: string }) {
+function tableLine(tableNumber?: string | null) {
+  const t = tableNumber?.trim();
+  return t ? ` Your table: ${t}.` : "";
+}
+
+export function buildGuestMessage(opts: { name: string; code: string; tableNumber?: string | null }) {
   const url = ticketUrl(opts.code);
   return (
-    `Dear ${opts.name}, Thank you for attending our event, ${EVENT.name} on ${EVENT.date} at ${EVENT.time}, ${EVENT.venue}. ` +
+    `Dear ${opts.name}, Thank you for attending our event, ${EVENT.name} on ${EVENT.date} at ${EVENT.time}, ${EVENT.venue}.${tableLine(opts.tableNumber)} ` +
     `Show this QR ticket at the door: ${url}`
   );
 }
 
-export function buildSponsorMessage(opts: { name: string; guestCount: number; firstCode?: string }) {
-  const url = opts.firstCode ? ticketUrl(opts.firstCode) : null;
-  const head = `Dear ${opts.name}, your ${opts.guestCount} guest${opts.guestCount === 1 ? "" : "s"} ` +
-    `${opts.guestCount === 1 ? "is" : "are"} confirmed for ${EVENT.name} on ${EVENT.date} at ${EVENT.time}, ${EVENT.venue}.`;
-  return url ? `${head} Your guests have received their QR tickets via SMS. Sample: ${url}` : head;
-}
-
-export function buildReminderMessage(opts: { name: string; code: string }) {
+export function buildReminderMessage(opts: { name: string; code: string; tableNumber?: string | null }) {
   const url = ticketUrl(opts.code);
   return (
-    `Reminder: ${EVENT.name} is on ${EVENT.date} at ${EVENT.time}, ${EVENT.venue}. ` +
+    `Reminder: ${EVENT.name} is on ${EVENT.date} at ${EVENT.time}, ${EVENT.venue}.${tableLine(opts.tableNumber)} ` +
     `Hello ${opts.name} — your entry QR: ${url}`
   );
 }

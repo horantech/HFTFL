@@ -41,10 +41,19 @@ html, body {
   color: var(--ink);
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   font-family: var(--font-sans);
   font-feature-settings: "ss01", "cv11";
   letter-spacing: -0.005em;
+  overflow-x: hidden;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
 h1, h2, h3, h4 {
@@ -55,6 +64,7 @@ h1, h2, h3, h4 {
 /* Forms */
 .input {
   width: 100%;
+  min-width: 0;
   border: 1px solid var(--line);
   background: var(--surface);
   border-radius: 0.5rem;
@@ -63,6 +73,13 @@ h1, h2, h3, h4 {
   color: var(--ink);
   outline: none;
   transition: border-color 120ms, box-shadow 120ms;
+}
+@media (max-width: 640px) {
+  /* Prevent iOS Safari from auto-zooming on focus */
+  .input {
+    font-size: 16px;
+    padding: 0.65rem 0.85rem;
+  }
 }
 .input:focus {
   border-color: var(--ink);
@@ -147,12 +164,19 @@ h1, h2, h3, h4 {
 @media (max-width: 640px) {
   .btn {
     white-space: normal;
+    min-height: 40px;
   }
+  .btn-sm {
+    min-height: 34px;
+    padding: 0.4rem 0.6rem;
+  }
+  .btn-icon { min-height: 36px; min-width: 36px; }
   .btn-lg {
     width: 100%;
   }
   .card {
     padding: 0.9rem;
+    border-radius: 0.55rem;
   }
   .table th {
     padding: 0.6rem 0.7rem;
@@ -160,7 +184,17 @@ h1, h2, h3, h4 {
   .table td {
     padding: 0.65rem 0.7rem;
   }
+  h1 { font-size: 1.4rem !important; line-height: 1.25; }
+  h2 { font-size: 1.15rem !important; }
 }
+
+/* Horizontal scroll guard for any wrapper */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll-x::-webkit-scrollbar { height: 6px; }
+.scroll-x::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
 
 /* Badge */
 .badge {

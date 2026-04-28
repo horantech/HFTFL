@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Check } from "lucide-react";
 
-export default function AddGuestForm({ sponsorId }: { sponsorId: string }) {
+export default function AddGuestForm({ sponsorId, existingCount }: { sponsorId: string; existingCount: number }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -12,33 +12,38 @@ export default function AddGuestForm({ sponsorId }: { sponsorId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const autoName = `Guest ${existingCount + 1}`;
+
   async function submit(alsoCheckIn = false) {
-    if (!name.trim()) return;
     setBusy(true); setError(null);
+    const finalName = name.trim() || autoName;
     try {
       const res = await fetch(`/api/sponsors/${sponsorId}/guests`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, phone, email }),
+        body: JSON.stringify({ name: finalName, phone: phone.trim() || null, email: email.trim() || null }),
       });
-      const j = await res.json();
-      if (!res.ok) { setError(j.error || "Failed"); return; }
-      if (alsoCheckIn) {
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(j.error || `Failed (HTTP ${res.status})`); return; }
+      if (alsoCheckIn && j.id) {
         await fetch(`/api/guests/${j.id}/checkin`, { method: "POST" });
       }
       setName(""); setPhone(""); setEmail("");
       router.refresh();
-    } catch { setError("Network error"); }
+    } catch (e) { setError(e instanceof Error ? e.message : "Network error"); }
     finally { setBusy(false); }
   }
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); submit(false); }} className="card">
-      <div className="text-sm font-semibold mb-3">Add a guest</div>
-      <div className="grid sm:grid-cols-[2fr_1.3fr_1.3fr] gap-2">
+      <div className="flex items-baseline justify-between mb-3 gap-2 flex-wrap">
+        <div className="text-sm font-semibold">Add a guest</div>
+        <div className="text-xs text-[var(--ink-mute)]">Leave the name blank to add a placeholder slot ({autoName}).</div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-[2fr_1.3fr_1.3fr] gap-2 sm:gap-3">
         <div>
           <label className="label">Full name</label>
-          <input className="input" required value={name} onChange={e=>setName(e.target.value)} placeholder="Guest name"/>
+          <input className="input" value={name} onChange={e=>setName(e.target.value)} placeholder={autoName}/>
         </div>
         <div>
           <label className="label">Phone</label>
@@ -49,11 +54,11 @@ export default function AddGuestForm({ sponsorId }: { sponsorId: string }) {
           <input className="input" type="email" value={email} onChange={e=>setEmail(e.target.value)}/>
         </div>
       </div>
-      <div className="flex flex-col sm:flex-row justify-end gap-2 mt-3">
-        <button type="submit" className="btn btn-outline btn-sm w-full sm:w-auto" disabled={busy || !name.trim()}>
-          <Plus size={14}/> Add
+      <div className="grid grid-cols-2 sm:flex sm:justify-end gap-2 mt-3">
+        <button type="submit" className="btn btn-outline" disabled={busy}>
+          <Plus size={14}/> {busy ? "Adding…" : "Add"}
         </button>
-        <button type="button" onClick={() => submit(true)} className="btn btn-primary btn-sm w-full sm:w-auto" disabled={busy || !name.trim()}>
+        <button type="button" onClick={() => submit(true)} className="btn btn-primary" disabled={busy}>
           <Check size={14}/> Add & check in
         </button>
       </div>

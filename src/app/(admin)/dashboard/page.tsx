@@ -72,21 +72,21 @@ export default async function DashboardPage() {
   const { sponsorRows, guestRows } = await loadPeople();
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-end justify-between flex-wrap gap-3">
+    <div className="space-y-5 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Dashboard</h1>
           <p className="text-sm text-[var(--ink-mute)] mt-0.5">Overview of registrations and check-ins.</p>
         </div>
-        <div className="flex gap-2 flex-wrap w-full sm:w-auto">
-          <Link href="/people/new-individual" className="btn btn-outline btn-lg"><User size={18}/> Add individual</Link>
-          <Link href="/people/new" className="btn btn-primary btn-lg"><UserPlus size={18}/> New sponsor</Link>
-          <Link href="/scan" className="btn btn-outline btn-lg"><ScanLine size={18}/> Open scanner</Link>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:w-auto">
+          <Link href="/people/new-individual" className="btn btn-outline"><User size={16}/> Add individual</Link>
+          <Link href="/people/new" className="btn btn-primary"><UserPlus size={16}/> New sponsor</Link>
+          <Link href="/scan" className="btn btn-outline"><ScanLine size={16}/> Scanner</Link>
           {smsReady && <ReminderButton/>}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <Stat label="Sponsors" value={stats.sponsors} sub={`${stats.sponsorsPaid} paid`}/>
         <Stat label="Guests" value={stats.total} />
         <Stat label="Checked in" value={stats.checkedIn} />
@@ -102,10 +102,10 @@ export default async function DashboardPage() {
 
 function Stat({ label, value, sub }: { label: string; value: number; sub?: string }) {
   return (
-    <div className="card">
-      <div className="text-xs uppercase tracking-wider text-[var(--ink-mute)]">{label}</div>
-      <div className="text-3xl font-semibold mt-1">{value}</div>
-      {sub && <div className="text-xs text-[var(--ink-mute)] mt-1">{sub}</div>}
+    <div className="card !p-3 sm:!p-4">
+      <div className="text-[10px] sm:text-xs uppercase tracking-wider text-[var(--ink-mute)]">{label}</div>
+      <div className="text-2xl sm:text-3xl font-semibold mt-1 leading-none">{value}</div>
+      {sub && <div className="text-[10px] sm:text-xs text-[var(--ink-mute)] mt-1">{sub}</div>}
     </div>
   );
 }

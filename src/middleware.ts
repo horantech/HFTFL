@@ -7,12 +7,15 @@ const PUBLIC_PATHS = [
   "/api/auth/login",
 ];
 
+const STATIC_FILE_RE = /\.(?:png|jpe?g|gif|webp|svg|ico|css|js|map|woff2?|ttf|otf|txt|json|xml)$/i;
+
 function isPublicPath(pathname: string) {
   if (PUBLIC_PATHS.includes(pathname)) return true;
   if (pathname.startsWith("/t/")) return true;
   if (pathname.startsWith("/api/ticket/")) return true;
   if (pathname.startsWith("/_next")) return true;
   if (pathname === "/favicon.ico") return true;
+  if (STATIC_FILE_RE.test(pathname)) return true;
   return false;
 }
 

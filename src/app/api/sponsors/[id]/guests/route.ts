@@ -13,32 +13,37 @@ const Body = z.object({
 });
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const [sponsor] = await db
-    .select({ id: sponsors.id, paid: sponsors.paid })
-    .from(sponsors)
-    .where(eq(sponsors.id, id))
-    .limit(1);
-  if (!sponsor) return NextResponse.json({ error: "Sponsor not found" }, { status: 404 });
+  try {
+    const { id } = await params;
+    const [sponsor] = await db
+      .select({ id: sponsors.id, paid: sponsors.paid })
+      .from(sponsors)
+      .where(eq(sponsors.id, id))
+      .limit(1);
+    if (!sponsor) return NextResponse.json({ error: "Sponsor not found" }, { status: 404 });
 
-  const body = await req.json().catch(() => null);
-  const parsed = Body.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
-  const v = parsed.data;
+    const body = await req.json().catch(() => null);
+    const parsed = Body.safeParse(body);
+    if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    const v = parsed.data;
 
-  const [row] = await db
-    .insert(guests)
-    .values({
-      sponsorId: id,
-      name: v.name.trim(),
-      phone: normalizePhone(v.phone),
-      email: v.email?.trim() || null,
-    })
-    .returning({ id: guests.id, ticketCode: guests.ticketCode });
+    const [row] = await db
+      .insert(guests)
+      .values({
+        sponsorId: id,
+        name: v.name.trim(),
+        phone: normalizePhone(v.phone),
+        email: v.email?.trim() || null,
+      })
+      .returning({ id: guests.id, ticketCode: guests.ticketCode });
 
-  if (sponsor.paid) {
-    await sendTicketToGuest(row.id);
+    if (sponsor.paid) {
+      try { await sendTicketToGuest(row.id); } catch { /* don't fail the insert if SMS fails */ }
+    }
+
+    return NextResponse.json({ ok: true, id: row.id, ticketCode: row.ticketCode });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
-
-  return NextResponse.json({ ok: true, id: row.id, ticketCode: row.ticketCode });
 }
