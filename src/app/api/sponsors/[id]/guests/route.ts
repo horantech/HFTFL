@@ -4,7 +4,6 @@ import { guests, sponsors } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { normalizePhone } from "@/lib/utils";
-import { sendTicketToGuest } from "@/lib/notify";
 
 const Body = z.object({
   name: z.string().min(1).max(200),
@@ -16,7 +15,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     const { id } = await params;
     const [sponsor] = await db
-      .select({ id: sponsors.id, paid: sponsors.paid })
+      .select({ id: sponsors.id })
       .from(sponsors)
       .where(eq(sponsors.id, id))
       .limit(1);
@@ -36,10 +35,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         email: v.email?.trim() || null,
       })
       .returning({ id: guests.id, ticketCode: guests.ticketCode });
-
-    if (sponsor.paid) {
-      try { await sendTicketToGuest(row.id); } catch { /* don't fail the insert if SMS fails */ }
-    }
 
     return NextResponse.json({ ok: true, id: row.id, ticketCode: row.ticketCode });
   } catch (err) {

@@ -1,6 +1,13 @@
 import twilio from "twilio";
 import { EVENT } from "./event";
 
+// Twilio transport.
+//
+// Required env:
+//   TWILIO_ACCOUNT_SID    Account SID from twilio.com/console
+//   TWILIO_AUTH_TOKEN     Auth token from twilio.com/console
+//   TWILIO_FROM           A Twilio phone number or alphanumeric Sender ID
+
 let client: ReturnType<typeof twilio> | null = null;
 function getClient() {
   if (client) return client;
@@ -41,7 +48,7 @@ export type SmsResult = { ok: true; sid: string } | { ok: false; error: string }
 
 export async function sendSms(to: string, body: string): Promise<SmsResult> {
   const c = getClient();
-  if (!c) return { ok: false, error: "Twilio not configured" };
+  if (!c) return { ok: false, error: "Twilio not configured (missing TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN)" };
   const from = process.env.TWILIO_FROM;
   if (!from) return { ok: false, error: "TWILIO_FROM not set" };
   try {

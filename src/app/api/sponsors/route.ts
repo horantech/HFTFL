@@ -3,7 +3,6 @@ import { db } from "@/db";
 import { sponsors, guests } from "@/db/schema";
 import { z } from "zod";
 import { normalizePhone } from "@/lib/utils";
-import { sendTicketsForSponsor } from "@/lib/notify";
 
 const Body = z.object({
   name: z.string().min(1).max(200),
@@ -61,10 +60,6 @@ export async function POST(req: Request) {
           email: g.email?.trim() || null,
         })),
     );
-  }
-
-  if (v.paid) {
-    await sendTicketsForSponsor(row.id);
   }
 
   return NextResponse.json({ ok: true, id: row.id });

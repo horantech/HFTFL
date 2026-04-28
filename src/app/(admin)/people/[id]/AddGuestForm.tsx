@@ -7,7 +7,7 @@ import { Plus, Check } from "lucide-react";
 export default function AddGuestForm({ sponsorId, existingCount }: { sponsorId: string; existingCount: number }) {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState("+251 ");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +28,7 @@ export default function AddGuestForm({ sponsorId, existingCount }: { sponsorId: 
       if (alsoCheckIn && j.id) {
         await fetch(`/api/guests/${j.id}/checkin`, { method: "POST" });
       }
-      setName(""); setPhone(""); setEmail("");
+      setName(""); setPhone("+251 "); setEmail("");
       router.refresh();
     } catch (e) { setError(e instanceof Error ? e.message : "Network error"); }
     finally { setBusy(false); }
@@ -47,7 +47,7 @@ export default function AddGuestForm({ sponsorId, existingCount }: { sponsorId: 
         </div>
         <div>
           <label className="label">Phone</label>
-          <input className="input" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+251 9..."/>
+          <input className="input" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="9..."/>
         </div>
         <div>
           <label className="label">Email (optional)</label>
