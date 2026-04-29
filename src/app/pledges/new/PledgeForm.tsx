@@ -107,17 +107,26 @@ export default function PledgeForm() {
       </div>
 
       <div>
-        <label className="label">Amount (ETB)</label>
-        <input
-          className="input"
-          required
-          inputMode="numeric"
-          value={amount}
-          // Only allow digits
-          onChange={e => setAmount(e.target.value.replace(/\D/g, ""))}
-          placeholder="e.g. 5000"
-        />
-      </div>
+  <label className="label">Amount (ETB)</label>
+  <input
+    className="input"
+    required
+    inputMode="numeric"
+    // Display the state formatted with commas
+    value={amount ? Number(amount).toLocaleString() : ""}
+    onChange={(e) => {
+      // 1. Remove all non-digits (including existing commas)
+      const rawValue = e.target.value.replace(/\D/g, "");
+      
+      // 2. Prevent leading zeros (optional but cleaner)
+      const cleanValue = rawValue.replace(/^0+/, "");
+      
+      // 3. Save only the raw digits to the state
+      setAmount(cleanValue);
+    }}
+    placeholder="e.g. 5,000"
+  />
+</div>
 
       {error && (
         <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2.5">

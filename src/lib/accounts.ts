@@ -10,16 +10,26 @@ export const ACCOUNTS: BankAccount[] = [
   {
     bank: "Commercial Bank of Ethiopia (CBE)",
     accountName: "Hope for the Fatherless",
-    accountNumber: "1000-XXXXXXXX",
+    accountNumber: "1000321129254",
   },
   {
-    bank: "Awash Bank",
+    bank: "Bank of Abyssinia",
     accountName: "Hope for the Fatherless",
-    accountNumber: "0130-XXXXXXXX",
+    accountNumber: "38812947",
   },
   {
-    bank: "Wegagen Bank",
+    bank: "Birhan Bank",
     accountName: "Hope for the Fatherless",
-    accountNumber: "1234-XXXXXXXX",
+    accountNumber: "2601680015655",
+  },
+  {
+    bank: "Hibret Bank",
+    accountName: "Hope for the Fatherless",
+    accountNumber: "4731111625714014",
+  },
+  {
+    bank: "Zemen Bank",
+    accountName: "Hope for the Fatherless",
+    accountNumber: "1292411208852012",
   },
 ];
