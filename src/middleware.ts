@@ -16,6 +16,10 @@ function isPublicPath(pathname: string) {
   if (pathname.startsWith("/_next")) return true;
   if (pathname === "/favicon.ico") return true;
   if (STATIC_FILE_RE.test(pathname)) return true;
+  // Pledge board: landing + form + GET/POST API are public.
+  // The /pledges/admin page falls through to the auth check.
+  if (pathname === "/pledges" || pathname === "/pledges/new") return true;
+  if (pathname === "/api/pledges") return true;
   return false;
 }
 

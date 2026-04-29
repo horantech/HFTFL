@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, boolean, integer, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const sponsors = pgTable(
@@ -60,7 +60,21 @@ export const guestsRelations = relations(guests, ({ one }) => ({
   }),
 }));
 
+export const pledges = pgTable(
+  "pledges",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    phone: text("phone"),
+    amount: integer("amount").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("pledges_created_idx").on(t.createdAt)],
+);
+
 export type Sponsor = typeof sponsors.$inferSelect;
 export type NewSponsor = typeof sponsors.$inferInsert;
 export type Guest = typeof guests.$inferSelect;
 export type NewGuest = typeof guests.$inferInsert;
+export type Pledge = typeof pledges.$inferSelect;
+export type NewPledge = typeof pledges.$inferInsert;

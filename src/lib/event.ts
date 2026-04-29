@@ -5,3 +5,6 @@ export const EVENT = {
   venue: "Hilton Hotel, Addis Ababa",
   isoDate: "2026-04-30T18:00:00+03:00",
 } as const;
+
+// Fundraising target shown on the live pledge board (in ETB).
+export const PLEDGE_GOAL = 7_500_000;

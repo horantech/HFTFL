@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { LayoutDashboard, Users, ScanLine, Upload, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Users, ScanLine, Upload, HandCoins, LogOut, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
@@ -11,6 +11,7 @@ const items = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/people", label: "People", icon: Users },
   { href: "/scan", label: "Scan", icon: ScanLine },
+  { href: "/pledges/admin", label: "Pledges", icon: HandCoins },
   { href: "/import", label: "Import", icon: Upload },
 ];
 
