@@ -15,11 +15,12 @@ type Props = {
   sponsorHasTicket: boolean;
   isIndividual: boolean;
   paid: boolean;
+  hasPaidGuest: boolean;
 };
 
 export default function SponsorActions({
   sponsorId, smsReady, guestCount,
-  sponsorName, sponsorPhone, sponsorHasTicket, isIndividual, paid,
+  sponsorName, sponsorPhone, sponsorHasTicket, isIndividual, paid, hasPaidGuest,
 }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -82,7 +83,7 @@ export default function SponsorActions({
           <Ticket size={16}/> {busy === "ticket" ? "Generating…" : `Ticket for ${sponsorName}`}
         </button>
       )}
-      {smsReady && guestCount > 0 && paid && (
+      {smsReady && guestCount > 0 && (paid || hasPaidGuest) && (
         <button onClick={smsAll} disabled={busy !== null} className="btn btn-primary">
           <Send size={16}/> {busy === "sms" ? "Sending…" : "Send SMS to all"}
         </button>

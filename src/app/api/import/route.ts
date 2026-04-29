@@ -20,6 +20,11 @@ function pick(row: Record<string, string | null | undefined>, ...keys: string[])
   return null;
 }
 
+function parseBool(v: string | null): boolean {
+  if (!v) return false;
+  return /^(yes|paid|true|1|y)$/i.test(v.trim());
+}
+
 export async function POST(req: Request) {
   const json = await req.json().catch(() => null);
   const parsed = Body.safeParse(json);
@@ -61,11 +66,11 @@ export async function POST(req: Request) {
     const phone = normalizePhone(pick(row, "phone", "phone number", "mobile", "tel"));
     const email = pick(row, "email", "e-mail");
     const scheduled = pick(row, "scheduled");
-    const paid = pick(row, "paid");
+    const paid = parseBool(pick(row, "paid"));
     const notes = pick(row, "notes", "note");
     const [sp] = await db
       .insert(sponsors)
-      .values({ name, isIndividual: true, contactPhone: phone })
+      .values({ name, isIndividual: true, contactPhone: phone, paid })
       .returning({ id: sponsors.id });
     await db.insert(guests).values({
       sponsorId: sp.id, name, phone, email, scheduled, paid, notes,
@@ -86,7 +91,7 @@ async function insertGuests(sponsorId: string, rows: Array<Record<string, string
       phone: normalizePhone(pick(row, "phone", "phone number", "mobile", "tel")),
       email: pick(row, "email", "e-mail"),
       scheduled: pick(row, "scheduled"),
-      paid: pick(row, "paid"),
+      paid: parseBool(pick(row, "paid")),
       notes: pick(row, "notes", "note"),
     });
     created++;

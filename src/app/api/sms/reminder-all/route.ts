@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { guests, sponsors } from "@/db/schema";
-import { and, isNull, eq } from "drizzle-orm";
+import { and, isNull, eq, or } from "drizzle-orm";
 import { sendSms, buildReminderMessage, isSmsConfigured } from "@/lib/sms";
 
 export async function POST() {
@@ -17,7 +17,10 @@ export async function POST() {
       })
       .from(guests)
       .innerJoin(sponsors, eq(sponsors.id, guests.sponsorId))
-      .where(and(isNull(guests.checkedInAt), eq(sponsors.paid, true)));
+      .where(and(
+        isNull(guests.checkedInAt),
+        or(eq(sponsors.paid, true), eq(guests.paid, true)),
+      ));
     let sent = 0, failed = 0, skipped = 0;
     for (const g of list) {
       if (!g.phone) { skipped++; continue; }

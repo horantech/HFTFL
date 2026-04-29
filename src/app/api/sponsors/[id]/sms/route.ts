@@ -20,19 +20,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .where(eq(sponsors.id, id))
       .limit(1);
     if (!sponsor) return NextResponse.json({ error: "Sponsor not found" }, { status: 404 });
-    if (!sponsor.paid) return NextResponse.json({ error: "Sponsor is not paid" }, { status: 400 });
 
     const list = await db
       .select()
       .from(guests)
       .where(eq(guests.sponsorId, id));
 
-    let sent = 0, failed = 0;
+    // A guest is eligible if either the sponsor is paid OR they're individually paid.
+    const eligible = list.filter(g => sponsor.paid || g.paid);
+    if (eligible.length === 0) {
+      return NextResponse.json({ error: "Nobody is marked paid yet (mark the sponsor or individual guests as paid first)" }, { status: 400 });
+    }
+
+    let sent = 0, failed = 0, skipped = 0;
     const sentIds: string[] = [];
 
-    for (const g of list) {
-      if (!g.phone) continue;
-      if (onlyPending && g.smsSentAt) continue;
+    for (const g of eligible) {
+      if (!g.phone) { skipped++; continue; }
+      if (onlyPending && g.smsSentAt) { skipped++; continue; }
       const res = await sendSms(g.phone, buildGuestMessage({ name: g.name, code: g.ticketCode, tableNumber: sponsor.tableNumber }));
       if (res.ok) { sent++; sentIds.push(g.id); }
       else { failed++; }
@@ -42,7 +47,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       await db.update(guests).set({ smsSentAt: new Date() }).where(eq(guests.id, gid));
     }
 
-    return NextResponse.json({ ok: true, sent, failed });
+    return NextResponse.json({ ok: true, sent, failed, skipped });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 500 });

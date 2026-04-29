@@ -35,7 +35,7 @@ export const guests = pgTable(
     email: text("email"),
     ticketCode: uuid("ticket_code").notNull().defaultRandom().unique(),
     scheduled: text("scheduled"),
-    paid: text("paid"),
+    paid: boolean("paid").notNull().default(false),
     notes: text("notes"),
     checkedInAt: timestamp("checked_in_at", { withTimezone: true }),
     smsSentAt: timestamp("sms_sent_at", { withTimezone: true }),

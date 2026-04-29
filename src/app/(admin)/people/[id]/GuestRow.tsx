@@ -9,6 +9,7 @@ import { formatDateTime } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { confirmDialog } from "@/lib/confirm";
 import TicketModal, { type TicketModalData } from "@/components/TicketModal";
+import GuestPaidToggle from "./GuestPaidToggle";
 
 type Props = {
   guest: Guest;
@@ -19,7 +20,7 @@ type Props = {
 };
 
 export default function GuestRow({ guest, smsReady, sponsorName, sponsorPaid, variant = "row" }: Props) {
-  const canSms = smsReady && sponsorPaid;
+  const canSms = smsReady && (sponsorPaid || guest.paid);
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -133,7 +134,10 @@ export default function GuestRow({ guest, smsReady, sponsorName, sponsorPaid, va
             <div className="font-medium truncate">{guest.name}</div>
             <div className="text-xs text-[var(--ink-mute)] truncate">{guest.phone || "—"}</div>
           </div>
-          {statusBadge}
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            <GuestPaidToggle id={guest.id} paid={guest.paid}/>
+            {statusBadge}
+          </div>
         </div>
         <div className="flex flex-wrap gap-1.5">
           <button onClick={() => setTicketModal({ ticketCode: guest.ticketCode, guestName: guest.name, sponsorName })} className="btn btn-ghost btn-sm"><ExternalLink size={14}/> View</button>
@@ -187,7 +191,12 @@ export default function GuestRow({ guest, smsReady, sponsorName, sponsorPaid, va
     <tr>
       <td className="font-medium">{guest.name}</td>
       <td className="text-[var(--ink-soft)]">{guest.phone || "—"}</td>
-      <td>{statusBadge}</td>
+      <td>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <GuestPaidToggle id={guest.id} paid={guest.paid}/>
+          {statusBadge}
+        </div>
+      </td>
       <td>
         <div className="flex items-center gap-1">
           <button onClick={() => setTicketModal({ ticketCode: guest.ticketCode, guestName: guest.name, sponsorName })} className="btn btn-ghost text-sm">View</button>

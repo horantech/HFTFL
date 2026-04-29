@@ -17,7 +17,10 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       .from(sponsors)
       .where(eq(sponsors.id, g.sponsorId))
       .limit(1);
-    if (!sponsor?.paid) return NextResponse.json({ error: "Sponsor is not paid" }, { status: 400 });
+    // Require either the sponsor or the guest themselves to be marked paid.
+    if (!sponsor?.paid && !g.paid) {
+      return NextResponse.json({ error: "Neither the sponsor nor the guest is marked paid" }, { status: 400 });
+    }
 
     const res = await sendSms(g.phone, buildGuestMessage({ name: g.name, code: g.ticketCode, tableNumber: sponsor.tableNumber }));
     if (!res.ok) return NextResponse.json({ error: res.error }, { status: 502 });

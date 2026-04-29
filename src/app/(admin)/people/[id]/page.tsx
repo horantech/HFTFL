@@ -44,6 +44,7 @@ export default async function SponsorDetailPage({ params }: { params: Promise<{ 
 
   const checkedIn = list.filter(g => g.checkedInAt).length;
   const smsReady = isSmsConfigured();
+  const hasPaidGuest = list.some(g => g.paid);
   const isCompany = sponsor.sponsorType === "company";
   const sponsorHasTicket = sponsor.isIndividual || isCompany ||
     list.some(g => g.name.trim().toLowerCase() === sponsor.name.trim().toLowerCase());
@@ -86,6 +87,7 @@ export default async function SponsorDetailPage({ params }: { params: Promise<{ 
             sponsorHasTicket={sponsorHasTicket}
             isIndividual={sponsor.isIndividual}
             paid={sponsor.paid}
+            hasPaidGuest={hasPaidGuest}
           />
         </div>
       </div>
