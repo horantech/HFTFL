@@ -10,7 +10,6 @@ import GuestRow from "./GuestRow";
 import AddGuestForm from "./AddGuestForm";
 import PaidToggle from "./PaidToggle";
 import TableNumberInline from "./TableNumberInline";
-import { isSmsConfigured } from "@/lib/sms";
 
 export const dynamic = "force-dynamic";
 
@@ -43,8 +42,6 @@ export default async function SponsorDetailPage({ params }: { params: Promise<{ 
     .orderBy(guests.createdAt);
 
   const checkedIn = list.filter(g => g.checkedInAt).length;
-  const smsReady = isSmsConfigured();
-  const hasPaidGuest = list.some(g => g.paid);
   const isCompany = sponsor.sponsorType === "company";
   const sponsorHasTicket = sponsor.isIndividual || isCompany ||
     list.some(g => g.name.trim().toLowerCase() === sponsor.name.trim().toLowerCase());
@@ -80,14 +77,10 @@ export default async function SponsorDetailPage({ params }: { params: Promise<{ 
           <SponsorEditForm sponsor={sponsor}/>
           <SponsorActions
             sponsorId={sponsor.id}
-            smsReady={smsReady}
-            guestCount={list.length}
             sponsorName={sponsor.name}
             sponsorPhone={sponsor.contactPhone}
             sponsorHasTicket={sponsorHasTicket}
             isIndividual={sponsor.isIndividual}
-            paid={sponsor.paid}
-            hasPaidGuest={hasPaidGuest}
           />
         </div>
       </div>
@@ -107,12 +100,12 @@ export default async function SponsorDetailPage({ params }: { params: Promise<{ 
         ) : (
           <>
             <div className="md:hidden divide-y divide-[var(--line)]">
-              {list.map(g => <GuestRow key={g.id} guest={g} smsReady={smsReady} sponsorName={sponsor.name} sponsorPaid={sponsor.paid} variant="card"/>)}
+              {list.map(g => <GuestRow key={g.id} guest={g} sponsorName={sponsor.name} variant="card"/>)}
             </div>
             <div className="hidden md:block scroll-x">
               <table className="table">
                 <thead><tr><th>Name</th><th>Phone</th><th>Status</th><th>Ticket</th><th></th></tr></thead>
-                <tbody>{list.map(g => <GuestRow key={g.id} guest={g} smsReady={smsReady} sponsorName={sponsor.name} sponsorPaid={sponsor.paid} variant="row"/>)}</tbody>
+                <tbody>{list.map(g => <GuestRow key={g.id} guest={g} sponsorName={sponsor.name} variant="row"/>)}</tbody>
               </table>
             </div>
           </>

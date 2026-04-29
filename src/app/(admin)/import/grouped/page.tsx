@@ -20,9 +20,11 @@ export default function GroupedImportPage() {
       <div className="card text-sm space-y-2">
         <div className="font-semibold">How grouping works</div>
         <ul className="text-[var(--ink-soft)] list-disc pl-5 space-y-1">
-          <li>Columns are read by <strong>position</strong>, not header — paste data as-is from the master spreadsheet template.</li>
-          <li>A row with a <strong>Company Name</strong>, <strong>Assigned Person</strong>, or <strong>Guest Count</strong> starts a new sponsor.</li>
-          <li>Following rows with no name (just RSVP / Paid / Bank) become placeholder seats <code>Guest 1</code>, <code>Guest 2</code>, …</li>
+          <li>Columns are read by <strong>position</strong>, not header. Order: <code>Full Name · Company · Assigned · Phone · Table</code>.</li>
+          <li>A leading row-number column (e.g. <code>1, 2, 3 …</code>) is auto-detected and dropped — paste as-is from the spreadsheet.</li>
+          <li>A row with a <strong>Company Name</strong> or <strong>Assigned Person</strong> starts a new sponsor.</li>
+          <li>A row with <strong>only a Company Name</strong> (e.g. <code>ENTOTO</code>, <code>MBK CATERING</code>) starts a Company-type sponsor; the rows below it become its guests.</li>
+          <li>Following rows with no name become placeholder seats <code>Guest 1</code>, <code>Guest 2</code>, … under the current sponsor.</li>
           <li>Following rows with a different name are added as named guests under the current sponsor.</li>
           <li>Names like <code>Ruth x3</code> expand to 3 guest rows.</li>
           <li>Phones get normalized: ET numbers prepended with <code>+251</code>, non-ET kept as-is with a leading <code>+</code>.</li>

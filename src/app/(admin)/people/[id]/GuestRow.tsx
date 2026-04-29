@@ -3,24 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { Send, Check, Copy, Undo2, Trash2, Pencil, X, ExternalLink } from "lucide-react";
+import { Check, Copy, Undo2, Trash2, Pencil, X, ExternalLink } from "lucide-react";
 import type { Guest } from "@/db/schema";
 import { formatDateTime } from "@/lib/utils";
-import { toast } from "@/lib/toast";
 import { confirmDialog } from "@/lib/confirm";
 import TicketModal, { type TicketModalData } from "@/components/TicketModal";
 import GuestPaidToggle from "@/components/GuestPaidToggle";
 
 type Props = {
   guest: Guest;
-  smsReady: boolean;
   sponsorName: string;
-  sponsorPaid: boolean;
   variant?: "row" | "card";
 };
 
-export default function GuestRow({ guest, smsReady, sponsorName, sponsorPaid, variant = "row" }: Props) {
-  const canSms = smsReady && (sponsorPaid || guest.paid);
+export default function GuestRow({ guest, sponsorName, variant = "row" }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -42,28 +38,6 @@ export default function GuestRow({ guest, smsReady, sponsorName, sponsorPaid, va
   async function uncheck() {
     setBusy("uncheck");
     await fetch(`/api/guests/${guest.id}/checkin`, { method: "DELETE" });
-    router.refresh();
-    setBusy(null);
-  }
-  async function sendSms() {
-    if (!guest.phone) {
-      toast("This guest has no phone number — add one to send the SMS.", "error");
-      return;
-    }
-    const alreadySent = guest.smsSentAt;
-    const ok = await confirmDialog({
-      title: alreadySent ? "SMS already sent" : "Send ticket SMS?",
-      message: alreadySent
-        ? `Ticket SMS was already sent on ${formatDateTime(alreadySent)}. Send again?`
-        : `Send ticket link to ${guest.name} at ${guest.phone}?`,
-      confirmLabel: alreadySent ? "Send again" : "Send",
-    });
-    if (!ok) return;
-    setBusy("sms");
-    const res = await fetch(`/api/guests/${guest.id}/sms`, { method: "POST" });
-    const j = await res.json().catch(() => ({}));
-    if (!res.ok) toast(j.error || "Failed to send SMS", "error");
-    else toast(`Ticket SMS sent to ${guest.name}`, "success");
     router.refresh();
     setBusy(null);
   }
@@ -105,8 +79,6 @@ export default function GuestRow({ guest, smsReady, sponsorName, sponsorPaid, va
 
   const statusBadge = guest.checkedInAt ? (
     <span className="badge badge-success">In · {formatDateTime(guest.checkedInAt)}</span>
-  ) : guest.smsSentAt ? (
-    <span className="badge">SMS sent</span>
   ) : (
     <span className="badge">Pending</span>
   );
@@ -144,11 +116,6 @@ export default function GuestRow({ guest, smsReady, sponsorName, sponsorPaid, va
           <button onClick={copyLink} className="btn btn-ghost btn-sm">
             <Copy size={14}/> {copied ? "Copied" : "Link"}
           </button>
-          {canSms && (
-            <button onClick={sendSms} disabled={busy !== null} className={`btn btn-sm ${guest.smsSentAt ? "btn-ghost" : "btn-outline"}`}>
-              <Send size={14}/> {busy === "sms" ? "Sending…" : guest.smsSentAt ? "Resend" : "SMS"}
-            </button>
-          )}
           {guest.checkedInAt ? (
             <button onClick={uncheck} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700">
               <Undo2 size={14}/> Undo
@@ -207,11 +174,6 @@ export default function GuestRow({ guest, smsReady, sponsorName, sponsorPaid, va
       </td>
       <td className="text-right">
         <div className="inline-flex items-center gap-1 flex-wrap justify-end">
-          {canSms && (
-            <button onClick={sendSms} disabled={busy !== null} className={`btn btn-sm ${guest.smsSentAt ? "btn-ghost" : "btn-outline"}`} title="Send ticket SMS">
-              <Send size={14}/> {busy === "sms" ? "Sending…" : guest.smsSentAt ? "Resend" : "SMS"}
-            </button>
-          )}
           {guest.checkedInAt ? (
             <button onClick={uncheck} disabled={busy !== null} className="btn btn-ghost text-sm text-red-700">
               <Undo2 size={14}/> Undo

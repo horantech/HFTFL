@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Check, Undo2, Send, Copy, Trash2, Plus, ExternalLink, Users, Search } from "lucide-react";
+import { ChevronRight, Check, Undo2, Copy, Trash2, Plus, ExternalLink, Users, Search } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { confirmDialog } from "@/lib/confirm";
@@ -158,30 +158,6 @@ export default function PeopleTable({
     router.refresh();
     setBusy(null);
   }
-  async function smsSponsor(id: string) {
-    const ok = await confirmDialog({
-      title: "Send ticket SMS?",
-      message: "This sends a ticket SMS to every guest under this sponsor.",
-      confirmLabel: "Send",
-    });
-    if (!ok) return;
-    setBusy("s-" + id);
-    const r = await fetch(`/api/sponsors/${id}/sms`, { method: "POST" });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) toast(j.error || "Failed to send SMS", "error");
-    else toast(`Sent ${j.sent}${j.failed ? ` · ${j.failed} failed` : ""}`, "success");
-    router.refresh();
-    setBusy(null);
-  }
-  async function smsGuest(id: string) {
-    setBusy("g-" + id);
-    const r = await fetch(`/api/guests/${id}/sms`, { method: "POST" });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) toast(j.error || "Failed to send SMS", "error");
-    else toast("Ticket SMS sent", "success");
-    router.refresh();
-    setBusy(null);
-  }
   async function copyLink(code: string) {
     const url = `${window.location.origin}/t/${code}`;
     try {
@@ -310,9 +286,6 @@ export default function PeopleTable({
             <div className="flex flex-wrap gap-1.5">
               <button onClick={() => setTicketModal({ ticketCode: g.ticketCode, guestName: g.name, sponsorName: g.sponsorName })} className="btn btn-ghost btn-sm" title="View ticket"><ExternalLink size={14}/> View</button>
               <button onClick={() => copyLink(g.ticketCode)} className="btn btn-ghost btn-sm" title="Copy link"><Copy size={14}/> Link</button>
-              {g.paid && (
-                <button onClick={() => smsGuest(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm" title="Send SMS"><Send size={14}/> SMS</button>
-              )}
               {g.checkedInAt
                 ? <button onClick={() => uncheck(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700"><Undo2 size={14}/> Undo</button>
                 : <button onClick={() => checkin(g.id)} disabled={busy !== null} className="btn btn-primary btn-sm"><Check size={14}/> Check in</button>}
@@ -355,9 +328,6 @@ export default function PeopleTable({
                   <div className="inline-flex gap-1">
                     <button onClick={() => setTicketModal({ ticketCode: g.ticketCode, guestName: g.name, sponsorName: g.sponsorName })} className="btn btn-ghost btn-sm" title="View ticket"><ExternalLink size={14}/></button>
                     <button onClick={() => copyLink(g.ticketCode)} className="btn btn-ghost btn-sm" title="Copy link"><Copy size={14}/></button>
-                    {g.paid && (
-                      <button onClick={() => smsGuest(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm" title="Send SMS"><Send size={14}/></button>
-                    )}
                     {g.checkedInAt
                       ? <button onClick={() => uncheck(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700"><Undo2 size={14}/></button>
                       : <button onClick={() => checkin(g.id)} disabled={busy !== null} className="btn btn-primary btn-sm"><Check size={14}/> Check in</button>}
@@ -406,9 +376,6 @@ export default function PeopleTable({
             </div>
             <div className="flex flex-wrap gap-1.5">
               <Link href={`/people/${s.id}`} className="btn btn-ghost btn-sm">Open</Link>
-              {(s.paid || sGuests.some(g => g.paid)) && (
-                <button onClick={() => smsSponsor(s.id)} disabled={busy !== null} className="btn btn-ghost btn-sm" title="Send tickets via SMS"><Send size={14}/> SMS</button>
-              )}
               <button onClick={() => deleteSponsor(s.id, s.name)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700" title="Delete"><Trash2 size={14}/> Delete</button>
               {!s.isIndividual && (
                 <button onClick={() => toggle(s.id)} className="btn btn-outline btn-sm">
@@ -436,9 +403,6 @@ export default function PeopleTable({
                     <div className="flex flex-wrap gap-1">
                       <button onClick={() => setTicketModal({ ticketCode: g.ticketCode, guestName: g.name, sponsorName: s.name })} className="btn btn-ghost btn-sm"><ExternalLink size={14}/> View</button>
                       <button onClick={() => copyLink(g.ticketCode)} className="btn btn-ghost btn-sm"><Copy size={14}/> Link</button>
-                      {(s.paid || g.paid) && (
-                        <button onClick={() => smsGuest(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm"><Send size={14}/> SMS</button>
-                      )}
                       {g.checkedInAt
                         ? <button onClick={() => uncheck(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700"><Undo2 size={14}/> Undo</button>
                         : <button onClick={() => checkin(g.id)} disabled={busy !== null} className="btn btn-primary btn-sm"><Check size={14}/> In</button>}
@@ -537,9 +501,6 @@ export default function PeopleTable({
                   <td className="text-right">
                     <div className="inline-flex gap-1" onClick={(e) => e.stopPropagation()}>
                       <Link href={`/people/${s.id}`} className="btn btn-ghost btn-sm" title="Open detail">Open</Link>
-                      {(s.paid || sGuests.some(g => g.paid)) && (
-                        <button onClick={() => smsSponsor(s.id)} disabled={busy !== null} className="btn btn-ghost btn-sm" title="Send tickets via SMS"><Send size={14}/></button>
-                      )}
                       <button onClick={() => deleteSponsor(s.id, s.name)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700" title="Delete"><Trash2 size={14}/></button>
                     </div>
                   </td>
@@ -576,9 +537,6 @@ export default function PeopleTable({
                           <div className="inline-flex gap-1">
                             <button onClick={() => setTicketModal({ ticketCode: g.ticketCode, guestName: g.name, sponsorName: s.name })} className="btn btn-ghost btn-sm" title="View ticket"><ExternalLink size={14}/></button>
                             <button onClick={() => copyLink(g.ticketCode)} className="btn btn-ghost btn-sm" title="Copy link"><Copy size={14}/></button>
-                            {(s.paid || g.paid) && (
-                              <button onClick={() => smsGuest(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm" title="SMS"><Send size={14}/></button>
-                            )}
                             {g.checkedInAt
                               ? <button onClick={() => uncheck(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700"><Undo2 size={14}/></button>
                               : <button onClick={() => checkin(g.id)} disabled={busy !== null} className="btn btn-primary btn-sm"><Check size={14}/> In</button>}

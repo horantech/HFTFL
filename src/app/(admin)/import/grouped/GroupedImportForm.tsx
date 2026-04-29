@@ -87,15 +87,15 @@ export default function GroupedImportForm() {
         <label className="label">Paste tab-separated rows (copy from Excel)</label>
         <div className="text-xs text-[var(--ink-mute)]">
           Column order:{" "}
-          <code className="bg-[var(--bg)] px-1 rounded">Full Name · Company Name · Assigned Person · Phone · Email · WhatsApp · Table No. · RSVP · Guest Count · Payment · Bank</code>
-          . A header row, if pasted, is skipped automatically.
+          <code className="bg-[var(--bg)] px-1 rounded">Full Name · Company Name · Assigned Person · Phone No · Table No.</code>
+          . A header row, if pasted, is skipped automatically. A leading row-number column is auto-detected and dropped.
         </div>
         <textarea
           className="input font-mono text-xs"
           rows={12}
           value={tsv}
           onChange={e => setTsv(e.target.value)}
-          placeholder={"Belay T. Gebru\tHope For the Fatherless\tBelay\t911941261\tbelay@example.com\t911941261\t1\tYes\t10\tPaid\t\nKoki Kidane\t\t\t\t\t\t\tYes\t\tPaid\t"}
+          placeholder={"Belay T. Gebru\tHFTF\tBelay\t911941261\t21\nKoki Kidane\t\t\t902513615\t21\nAster Taye\t\t\t\t21"}
         />
         <div className="flex gap-2 justify-end">
           <button onClick={preview} disabled={!tsv.trim() || busy !== null} className="btn btn-outline w-full sm:w-auto">

@@ -38,11 +38,19 @@ export async function POST(req: Request) {
   if (v.mode === "existing") {
     if (!v.sponsorId) return NextResponse.json({ error: "sponsorId required" }, { status: 400 });
     const [sponsor] = await db
-      .select({ id: sponsors.id })
+      .select({ id: sponsors.id, tableNumber: sponsors.tableNumber })
       .from(sponsors)
       .where(eq(sponsors.id, v.sponsorId))
       .limit(1);
     if (!sponsor) return NextResponse.json({ error: "Sponsor not found" }, { status: 404 });
+
+    // If the batch carries a table number and the sponsor doesn't have one yet, set it.
+    if (!sponsor.tableNumber) {
+      const fromRows = v.rows.map(r => pick(r, "table no", "table no.", "table number", "table")).find(Boolean);
+      if (fromRows) {
+        await db.update(sponsors).set({ tableNumber: fromRows }).where(eq(sponsors.id, v.sponsorId));
+      }
+    }
 
     const created = await insertGuests(v.sponsorId, v.rows);
     return NextResponse.json({ ok: true, created });
@@ -52,7 +60,13 @@ export async function POST(req: Request) {
   if (v.mode === "new") {
     const name = v.newSponsorName?.trim();
     if (!name) return NextResponse.json({ error: "newSponsorName required" }, { status: 400 });
-    const [sp] = await db.insert(sponsors).values({ name }).returning({ id: sponsors.id });
+    // Pull a table number from the first row that has one (most batches use a single table).
+    const tableNumber =
+      v.rows.map(r => pick(r, "table no", "table no.", "table number", "table")).find(Boolean) || null;
+    const [sp] = await db
+      .insert(sponsors)
+      .values({ name, tableNumber })
+      .returning({ id: sponsors.id });
     sponsorCreated = name;
     const created = await insertGuests(sp.id, v.rows);
     return NextResponse.json({ ok: true, created, sponsorCreated });
@@ -63,7 +77,7 @@ export async function POST(req: Request) {
   for (const row of v.rows) {
     const name = pick(row, "name", "full name", "guest", "guest name");
     if (!name) continue;
-    const phone = normalizePhone(pick(row, "phone", "phone number", "mobile", "tel"));
+    const phone = normalizePhone(pick(row, "phone", "phone no", "phone number", "mobile", "tel"));
     const email = pick(row, "email", "e-mail");
     const scheduled = pick(row, "scheduled");
     const paid = parseBool(pick(row, "paid"));
@@ -88,7 +102,7 @@ async function insertGuests(sponsorId: string, rows: Array<Record<string, string
     await db.insert(guests).values({
       sponsorId,
       name,
-      phone: normalizePhone(pick(row, "phone", "phone number", "mobile", "tel")),
+      phone: normalizePhone(pick(row, "phone", "phone no", "phone number", "mobile", "tel")),
       email: pick(row, "email", "e-mail"),
       scheduled: pick(row, "scheduled"),
       paid: parseBool(pick(row, "paid")),

@@ -38,18 +38,18 @@ export default async function ImportPage() {
       <div className="card">
         <div className="text-sm font-semibold mb-2">Expected CSV columns</div>
         <div className="text-sm text-[var(--ink-mute)] mb-3">
-          The header row must include at least <code className="bg-[var(--bg)] px-1 rounded text-[var(--ink)]">name</code>.
-          Optional: <code className="bg-[var(--bg)] px-1 rounded text-[var(--ink)]">phone</code>,{" "}
+          The header row must include at least <code className="bg-[var(--bg)] px-1 rounded text-[var(--ink)]">full name</code> (or <code className="bg-[var(--bg)] px-1 rounded text-[var(--ink)]">name</code>).
+          Optional: <code className="bg-[var(--bg)] px-1 rounded text-[var(--ink)]">phone no</code>,{" "}
           <code className="bg-[var(--bg)] px-1 rounded text-[var(--ink)]">email</code>,{" "}
-          <code className="bg-[var(--bg)] px-1 rounded text-[var(--ink)]">scheduled</code>,{" "}
+          <code className="bg-[var(--bg)] px-1 rounded text-[var(--ink)]">table no</code>,{" "}
           <code className="bg-[var(--bg)] px-1 rounded text-[var(--ink)]">paid</code>,{" "}
           <code className="bg-[var(--bg)] px-1 rounded text-[var(--ink)]">notes</code>.
-          Column names are case-insensitive.
+          Column names are case-insensitive. If a Table No. value appears in the rows, it's applied to the sponsor.
         </div>
         <pre className="text-xs bg-[var(--bg)] border border-[var(--line)] rounded p-3 overflow-auto">
-{`name,phone,scheduled,paid
-Almaz Tesfaye,+251911223344,Yes,Yes
-Bereket Alemu,+251922334455,Yes,No`}
+{`full name,phone no,table no,paid
+Almaz Tesfaye,+251911223344,12,Yes
+Bereket Alemu,+251922334455,12,No`}
         </pre>
       </div>
 

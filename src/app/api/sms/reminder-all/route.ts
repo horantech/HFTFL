@@ -21,13 +21,35 @@ export async function POST() {
         isNull(guests.checkedInAt),
         or(eq(sponsors.paid, true), eq(guests.paid, true)),
       ));
-    let sent = 0, failed = 0, skipped = 0;
+
+    // Dedup by phone number — many guests share a single contact phone (e.g.,
+    // groups under one buyer). Send one reminder per unique phone, keyed on the
+    // first guest we see for that number.
+    const byPhone = new Map<string, typeof list[number]>();
+    let noPhone = 0;
     for (const g of list) {
-      if (!g.phone) { skipped++; continue; }
+      if (!g.phone) { noPhone++; continue; }
+      if (!byPhone.has(g.phone)) byPhone.set(g.phone, g);
+    }
+
+    let sent = 0, failed = 0;
+    for (const g of byPhone.values()) {
+      if (!g.phone) continue;
       const r = await sendSms(g.phone, buildReminderMessage({ name: g.name, code: g.ticketCode, tableNumber: g.tableNumber }));
       if (r.ok) sent++; else failed++;
     }
-    return NextResponse.json({ ok: true, sent, failed, skipped });
+
+    const dedupSkipped = list.length - byPhone.size - noPhone;
+    return NextResponse.json({
+      ok: true,
+      sent,
+      failed,
+      skipped: noPhone + dedupSkipped,
+      // Diagnostics so staff can see the dedup math:
+      uniquePhones: byPhone.size,
+      noPhone,
+      dedupSkipped,
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 500 });

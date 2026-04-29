@@ -58,11 +58,11 @@ type Plan = {
 };
 
 // Fixed positional column layout. Paste from Excel must follow this column order
-// (matching the master spreadsheet template). A header row, if present, is auto-skipped.
+// (matching the current master spreadsheet template). A header row, if present, is
+// auto-skipped, and a leading row-number column is auto-detected and dropped.
 //
 //   0: Full Name      | 1: Company Name | 2: Assigned Person | 3: Phone No
-//   4: Email          | 5: WhatsApp     | 6: Table No.       | 7: RSVP Status
-//   8: Guest Count    | 9: Payment Status | 10: BANK
+//   4: Table No.
 
 function parseTsv(text: string): { rows: string[][]; autoShifted: boolean } {
   const lines = text.split(/\r?\n/).filter(l => l.length > 0);
@@ -101,13 +101,15 @@ function buildRows(data: string[][]): Row[] {
     companyName: (cells[1] ?? "").trim(),
     assignedPerson: (cells[2] ?? "").trim(),
     phone: (cells[3] ?? "").trim(),
-    email: (cells[4] ?? "").trim(),
-    whatsapp: (cells[5] ?? "").trim(),
-    tableNumber: (cells[6] ?? "").trim(),
-    rsvpStatus: (cells[7] ?? "").trim(),
-    guestCount: (cells[8] ?? "").trim(),
-    paymentStatus: (cells[9] ?? "").trim(),
-    bank: (cells[10] ?? "").trim(),
+    tableNumber: (cells[4] ?? "").trim(),
+    // Columns no longer in the source spreadsheet — kept on the Row type so the
+    // existing buildPlan logic compiles, but always empty going forward.
+    email: "",
+    whatsapp: "",
+    rsvpStatus: "",
+    guestCount: "",
+    paymentStatus: "",
+    bank: "",
   }));
 }
 
@@ -173,6 +175,31 @@ function buildPlan(rows: Row[]): Plan {
     const hasAnyData = hasName || hasCompany || hasContact || hasMeta;
 
     if (!hasAnyData) continue;
+
+    // Company-only header rows (e.g., ENTOTO, MBK CATERING, PROJECT MATRIX): the
+    // row has just a Company Name and nothing else. Start a brand-new Company
+    // sponsor named after the company, with no auto-attendance — continuation
+    // rows below will fill the seats.
+    if (!hasName && hasCompany && !row.assignedPerson.trim() && !hasContact && !hasMeta) {
+      list.push({
+        name: row.companyName.trim(),
+        leadName: "",
+        sponsorType: "company",
+        isIndividual: false,
+        contactPhone: null,
+        contactEmail: null,
+        paid: false,
+        assignedTo: null,
+        bank: null,
+        tableNumber: null,
+        notes: null,
+        ticketsBought: 0,
+        hasExplicitCount: false,
+        rsvpYes: 0, rsvpNo: 0, rsvpPending: 0,
+        guests: [],
+      });
+      continue;
+    }
 
     // Blank-name rows: treat as placeholder seat slots under the previous sponsor.
     // This mirrors the "number of seats" behavior in NewSponsorForm — the seat is reserved
