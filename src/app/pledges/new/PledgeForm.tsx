@@ -5,7 +5,8 @@ import { CheckCircle2 } from "lucide-react";
 
 export default function PledgeForm() {
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("+251 ");
+  // Start with prefix but allow editing/validation
+  const [phone, setPhone] = useState("251"); 
   const [amount, setAmount] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -14,12 +15,20 @@ export default function PledgeForm() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const cleanedAmount = parseInt(amount.replace(/[^\d]/g, ""), 10);
+    
+    const cleanedAmount = parseInt(amount, 10);
+    
+    // Validation
     if (!name.trim()) { setError("Please enter your name."); return; }
+    if (!phone.trim() || phone.length < 9) { 
+      setError("Please enter a valid phone number."); 
+      return; 
+    }
     if (!Number.isFinite(cleanedAmount) || cleanedAmount <= 0) {
       setError("Please enter a valid amount.");
       return;
     }
+
     setBusy(true);
     try {
       const res = await fetch("/api/pledges", {
@@ -27,7 +36,7 @@ export default function PledgeForm() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
-          phone: phone.trim() || null,
+          phone: phone.trim(),
           amount: cleanedAmount,
         }),
       });
@@ -58,7 +67,7 @@ export default function PledgeForm() {
           onClick={() => {
             setDone(null);
             setName("");
-            setPhone("+251 ");
+            setPhone("251");
             setAmount("");
           }}
           className="btn btn-outline btn-sm mt-2"
@@ -72,6 +81,7 @@ export default function PledgeForm() {
   return (
     <form onSubmit={submit} className="card space-y-4">
       <div className="text-sm font-semibold">Record your pledge</div>
+      
       <div>
         <label className="label">Full name</label>
         <input
@@ -82,15 +92,20 @@ export default function PledgeForm() {
           placeholder="e.g. Almaz Tesfaye"
         />
       </div>
+
       <div>
-        <label className="label">Phone (optional)</label>
+        <label className="label">Phone Number</label>
         <input
           className="input"
+          required
+          type="tel"
           value={phone}
-          onChange={e => setPhone(e.target.value)}
-          placeholder="9..."
+          // Only allow digits
+          onChange={e => setPhone(e.target.value.replace(/\D/g, ""))}
+          placeholder="2519..."
         />
       </div>
+
       <div>
         <label className="label">Amount (ETB)</label>
         <input
@@ -98,18 +113,21 @@ export default function PledgeForm() {
           required
           inputMode="numeric"
           value={amount}
-          onChange={e => setAmount(e.target.value)}
+          // Only allow digits
+          onChange={e => setAmount(e.target.value.replace(/\D/g, ""))}
           placeholder="e.g. 5000"
         />
       </div>
+
       {error && (
         <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2.5">
           {error}
         </div>
       )}
+
       <button
         className="btn btn-primary btn-lg w-full"
-        disabled={busy || !name.trim() || !amount.trim()}
+        disabled={busy || !name.trim() || !phone.trim() || !amount.trim()}
       >
         {busy ? "Submitting…" : "Submit pledge"}
       </button>

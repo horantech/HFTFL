@@ -55,7 +55,7 @@ export default function LiveTotal() {
       <div className="text-xs sm:text-sm uppercase tracking-[0.3em] text-white/60">Total pledged</div>
       <div
         className={`mt-2 font-bold text-white tabular-nums leading-none transition-transform duration-500 ${bumped ? "scale-110" : "scale-100"}`}
-        style={{ fontSize: "clamp(56px, 12vw, 200px)" }}
+        style={{ fontSize: "clamp(46px, 12vw, 200px)" }}
       >
         {formatBirr(data.total)}
       </div>
@@ -87,22 +87,7 @@ export default function LiveTotal() {
         from <span className="font-semibold text-white">{data.count}</span> pledge{data.count === 1 ? "" : "s"}
       </div>
 
-      {data.recent.length > 0 && (
-        <div className="mt-8 sm:mt-12 max-w-2xl mx-auto">
-          <div className="text-xs uppercase tracking-[0.25em] text-white/50 mb-3">Recent</div>
-          <ul className="space-y-1.5">
-            {data.recent.slice(0, 6).map((p, i) => (
-              <li
-                key={p.id}
-                className={`flex items-baseline justify-between gap-3 text-base sm:text-xl text-white/90 ${i === 0 ? "font-semibold" : ""}`}
-              >
-                <span className="truncate">{p.name}</span>
-                <span className="tabular-nums">{formatBirr(p.amount)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+    
     </div>
   );
 }
