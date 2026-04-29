@@ -9,7 +9,7 @@ import { formatDateTime } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { confirmDialog } from "@/lib/confirm";
 import TicketModal, { type TicketModalData } from "@/components/TicketModal";
-import GuestPaidToggle from "./GuestPaidToggle";
+import GuestPaidToggle from "@/components/GuestPaidToggle";
 
 type Props = {
   guest: Guest;

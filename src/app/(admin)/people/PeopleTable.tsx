@@ -8,6 +8,7 @@ import { formatTime } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { confirmDialog } from "@/lib/confirm";
 import TicketModal, { type TicketModalData } from "@/components/TicketModal";
+import GuestPaidToggle from "@/components/GuestPaidToggle";
 
 type SponsorRow = {
   id: string;
@@ -300,7 +301,8 @@ export default function PeopleTable({
               <span className="badge badge-ink">Guest</span>
             </div>
             <div className="text-xs text-[var(--ink-mute)]">{g.phone || "—"}</div>
-            <div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <GuestPaidToggle id={g.id} paid={g.paid}/>
               {g.checkedInAt
                 ? <span className="badge badge-success">Checked in · {formatTime(g.checkedInAt)}</span>
                 : <span className="badge">Pending</span>}
@@ -308,6 +310,9 @@ export default function PeopleTable({
             <div className="flex flex-wrap gap-1.5">
               <button onClick={() => setTicketModal({ ticketCode: g.ticketCode, guestName: g.name, sponsorName: g.sponsorName })} className="btn btn-ghost btn-sm" title="View ticket"><ExternalLink size={14}/> View</button>
               <button onClick={() => copyLink(g.ticketCode)} className="btn btn-ghost btn-sm" title="Copy link"><Copy size={14}/> Link</button>
+              {g.paid && (
+                <button onClick={() => smsGuest(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm" title="Send SMS"><Send size={14}/> SMS</button>
+              )}
               {g.checkedInAt
                 ? <button onClick={() => uncheck(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700"><Undo2 size={14}/> Undo</button>
                 : <button onClick={() => checkin(g.id)} disabled={busy !== null} className="btn btn-primary btn-sm"><Check size={14}/> Check in</button>}
@@ -339,14 +344,20 @@ export default function PeopleTable({
                 </td>
                 <td className="text-[var(--ink-mute)]">{g.phone || "—"}</td>
                 <td>
-                  {g.checkedInAt
-                    ? <span className="badge badge-success">Checked in · {formatTime(g.checkedInAt)}</span>
-                    : <span className="badge">Pending</span>}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <GuestPaidToggle id={g.id} paid={g.paid}/>
+                    {g.checkedInAt
+                      ? <span className="badge badge-success">In · {formatTime(g.checkedInAt)}</span>
+                      : <span className="badge">Pending</span>}
+                  </div>
                 </td>
                 <td className="text-right">
                   <div className="inline-flex gap-1">
                     <button onClick={() => setTicketModal({ ticketCode: g.ticketCode, guestName: g.name, sponsorName: g.sponsorName })} className="btn btn-ghost btn-sm" title="View ticket"><ExternalLink size={14}/></button>
                     <button onClick={() => copyLink(g.ticketCode)} className="btn btn-ghost btn-sm" title="Copy link"><Copy size={14}/></button>
+                    {g.paid && (
+                      <button onClick={() => smsGuest(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm" title="Send SMS"><Send size={14}/></button>
+                    )}
                     {g.checkedInAt
                       ? <button onClick={() => uncheck(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700"><Undo2 size={14}/></button>
                       : <button onClick={() => checkin(g.id)} disabled={busy !== null} className="btn btn-primary btn-sm"><Check size={14}/> Check in</button>}
@@ -414,9 +425,12 @@ export default function PeopleTable({
                   <div key={g.id} className="rounded-md border border-[var(--line)] p-2 space-y-1.5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="font-medium text-sm">{g.name}</div>
-                      {g.checkedInAt
-                        ? <span className="badge badge-success">In</span>
-                        : <span className="badge">Pending</span>}
+                      <div className="flex items-center gap-1 flex-wrap justify-end">
+                        <GuestPaidToggle id={g.id} paid={g.paid}/>
+                        {g.checkedInAt
+                          ? <span className="badge badge-success">In</span>
+                          : <span className="badge">Pending</span>}
+                      </div>
                     </div>
                     <div className="text-xs text-[var(--ink-mute)]">{g.phone || "—"}</div>
                     <div className="flex flex-wrap gap-1">
@@ -551,9 +565,12 @@ export default function PeopleTable({
                         </td>
                         <td className="text-[var(--ink-mute)]">{g.phone || "—"}</td>
                         <td colSpan={2}>
-                          {g.checkedInAt
-                            ? <span className="badge badge-success">Checked in · {formatTime(g.checkedInAt)}</span>
-                            : <span className="badge">Pending</span>}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <GuestPaidToggle id={g.id} paid={g.paid}/>
+                            {g.checkedInAt
+                              ? <span className="badge badge-success">In · {formatTime(g.checkedInAt)}</span>
+                              : <span className="badge">Pending</span>}
+                          </div>
                         </td>
                         <td className="text-right">
                           <div className="inline-flex gap-1">
