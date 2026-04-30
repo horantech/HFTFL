@@ -37,6 +37,7 @@ async function loadData() {
       phone: guests.phone,
       email: guests.email,
       ticketCode: guests.ticketCode,
+      shortCode: guests.shortCode,
       checkedInAt: guests.checkedInAt,
       smsSentAt: guests.smsSentAt,
       smsLastStatus: guests.smsLastStatus,

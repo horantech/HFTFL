@@ -31,6 +31,7 @@ type GuestRow = {
   phone: string | null;
   email: string | null;
   ticketCode: string;
+  shortCode: string | null;
   checkedInAt: Date | null;
   smsSentAt: Date | null;
   smsLastStatus: string | null;
@@ -215,7 +216,7 @@ export default function PeopleTable({
   async function remindSponsor(id: string, name: string) {
     const ok = await confirmDialog({
       title: `Send reminder to all guests of ${name}?`,
-      message: "Eligible: paid, has phone, not yet checked in. One SMS per guest, even if they share a phone.",
+      message: "Eligible: paid, has phone, not yet checked in. One SMS per phone — guests sharing a number with the sponsor's ticket are skipped.",
       confirmLabel: "Send reminders",
     });
     if (!ok) return;
@@ -223,7 +224,7 @@ export default function PeopleTable({
     const r = await fetch(`/api/sponsors/${id}/reminder`, { method: "POST" });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) toast(j.error || "Failed to send reminders", "error");
-    else toast(`Sent ${j.sent} · failed ${j.failed}`, "success");
+    else toast(`Sent ${j.sent} · failed ${j.failed} · dedup ${j.dedupSkipped}`, "success");
     router.refresh();
     setBusy(null);
   }
@@ -332,7 +333,7 @@ export default function PeopleTable({
               <SmsStatusBadge status={g.smsLastStatus} sentAt={g.smsSentAt} error={g.smsLastError}/>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              <button onClick={() => setTicketModal({ ticketCode: g.ticketCode, guestName: g.name, sponsorName: g.sponsorName })} className="btn btn-ghost btn-sm" title="View ticket"><ExternalLink size={14}/> View</button>
+              <button onClick={() => setTicketModal({ ticketCode: g.ticketCode, shortCode: g.shortCode, guestName: g.name, sponsorName: g.sponsorName })} className="btn btn-ghost btn-sm" title="View ticket"><ExternalLink size={14}/> View</button>
               <button onClick={() => copyLink(g.ticketCode)} className="btn btn-ghost btn-sm" title="Copy link"><Copy size={14}/> Link</button>
               {g.checkedInAt
                 ? <button onClick={() => uncheck(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700"><Undo2 size={14}/> Undo</button>
@@ -378,7 +379,7 @@ export default function PeopleTable({
                 </td>
                 <td className="text-right">
                   <div className="inline-flex gap-1">
-                    <button onClick={() => setTicketModal({ ticketCode: g.ticketCode, guestName: g.name, sponsorName: g.sponsorName })} className="btn btn-ghost btn-sm" title="View ticket"><ExternalLink size={14}/></button>
+                    <button onClick={() => setTicketModal({ ticketCode: g.ticketCode, shortCode: g.shortCode, guestName: g.name, sponsorName: g.sponsorName })} className="btn btn-ghost btn-sm" title="View ticket"><ExternalLink size={14}/></button>
                     <button onClick={() => copyLink(g.ticketCode)} className="btn btn-ghost btn-sm" title="Copy link"><Copy size={14}/></button>
                     {g.checkedInAt
                       ? <button onClick={() => uncheck(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700"><Undo2 size={14}/></button>
@@ -461,7 +462,7 @@ export default function PeopleTable({
                     </div>
                     <div className="text-xs text-[var(--ink-mute)]">{g.phone || "—"}</div>
                     <div className="flex flex-wrap gap-1">
-                      <button onClick={() => setTicketModal({ ticketCode: g.ticketCode, guestName: g.name, sponsorName: s.name })} className="btn btn-ghost btn-sm"><ExternalLink size={14}/> View</button>
+                      <button onClick={() => setTicketModal({ ticketCode: g.ticketCode, shortCode: g.shortCode, guestName: g.name, sponsorName: s.name })} className="btn btn-ghost btn-sm"><ExternalLink size={14}/> View</button>
                       <button onClick={() => copyLink(g.ticketCode)} className="btn btn-ghost btn-sm"><Copy size={14}/> Link</button>
                       {g.checkedInAt
                         ? <button onClick={() => uncheck(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700"><Undo2 size={14}/> Undo</button>
@@ -605,7 +606,7 @@ export default function PeopleTable({
                         </td>
                         <td className="text-right">
                           <div className="inline-flex gap-1">
-                            <button onClick={() => setTicketModal({ ticketCode: g.ticketCode, guestName: g.name, sponsorName: s.name })} className="btn btn-ghost btn-sm" title="View ticket"><ExternalLink size={14}/></button>
+                            <button onClick={() => setTicketModal({ ticketCode: g.ticketCode, shortCode: g.shortCode, guestName: g.name, sponsorName: s.name })} className="btn btn-ghost btn-sm" title="View ticket"><ExternalLink size={14}/></button>
                             <button onClick={() => copyLink(g.ticketCode)} className="btn btn-ghost btn-sm" title="Copy link"><Copy size={14}/></button>
                             {g.checkedInAt
                               ? <button onClick={() => uncheck(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700"><Undo2 size={14}/></button>

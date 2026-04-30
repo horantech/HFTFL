@@ -133,7 +133,7 @@ export default function GuestRow({ guest, sponsorName, sponsorPaid = false, vari
           </div>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          <button onClick={() => setTicketModal({ ticketCode: guest.ticketCode, guestName: guest.name, sponsorName })} className="btn btn-ghost btn-sm"><ExternalLink size={14}/> View</button>
+          <button onClick={() => setTicketModal({ ticketCode: guest.ticketCode, shortCode: guest.shortCode, guestName: guest.name, sponsorName })} className="btn btn-ghost btn-sm"><ExternalLink size={14}/> View</button>
           <button onClick={copyLink} className="btn btn-ghost btn-sm">
             <Copy size={14}/> {copied ? "Copied" : "Link"}
           </button>
@@ -193,7 +193,7 @@ export default function GuestRow({ guest, sponsorName, sponsorPaid = false, vari
       </td>
       <td>
         <div className="flex items-center gap-1">
-          <button onClick={() => setTicketModal({ ticketCode: guest.ticketCode, guestName: guest.name, sponsorName })} className="btn btn-ghost text-sm">View</button>
+          <button onClick={() => setTicketModal({ ticketCode: guest.ticketCode, shortCode: guest.shortCode, guestName: guest.name, sponsorName })} className="btn btn-ghost text-sm">View</button>
           <button onClick={copyLink} className="btn btn-ghost text-sm" title="Copy ticket link">
             <Copy size={14}/> {copied ? "Copied" : "Link"}
           </button>

@@ -4,10 +4,13 @@ import { guests, sponsors } from "@/db/schema";
 import { and, isNull, eq, or } from "drizzle-orm";
 import { isSmsConfigured } from "@/lib/sms";
 
-// Pre-flight for the bulk reminder send. Returns the recipient count plus a
-// list of sponsors that will receive ≥1 reminder but have no table number on
-// file — so staff can fill those in before firing. One SMS per eligible guest
-// (no phone dedup); duplicates to a shared phone are intentional.
+// Pre-flight for the bulk reminder send. Returns the deduplicated recipient
+// count plus a list of sponsors that will receive ≥1 reminder but have no
+// table number on file — so staff can fill those in before firing.
+//
+// Dedup rule mirrors /api/sms/reminder-all: one SMS per phone number, with
+// the sponsor-person (guest name === sponsor name) winning over other guests
+// who share that phone.
 export async function GET() {
   try {
     if (!isSmsConfigured()) return NextResponse.json({ error: "SMS not configured" }, { status: 400 });
@@ -28,11 +31,19 @@ export async function GET() {
         or(eq(sponsors.paid, true), eq(guests.paid, true)),
       ));
 
+    function isSponsorPerson(g: typeof list[number]): boolean {
+      return g.guestName.trim().toLowerCase() === g.sponsorName.trim().toLowerCase();
+    }
     let noPhone = 0;
-    const recipients = list.filter(g => {
-      if (!g.phone) { noPhone++; return false; }
-      return true;
-    });
+    const byPhone = new Map<string, typeof list[number]>();
+    for (const g of list) {
+      if (!g.phone) { noPhone++; continue; }
+      const cur = byPhone.get(g.phone);
+      if (!cur) { byPhone.set(g.phone, g); continue; }
+      if (isSponsorPerson(g) && !isSponsorPerson(cur)) byPhone.set(g.phone, g);
+    }
+    const recipients = Array.from(byPhone.values());
+    const dedupSkipped = list.length - noPhone - recipients.length;
 
     // Sponsors that would receive ≥1 reminder but currently have no table number.
     type Missing = { sponsorId: string; sponsorName: string; recipientCount: number };
@@ -49,6 +60,7 @@ export async function GET() {
       ok: true,
       recipients: recipients.length,
       noPhone,
+      dedupSkipped,
       totalRows: list.length,
       sponsorsMissingTable: Array.from(missing.values()).sort((a, b) => a.sponsorName.localeCompare(b.sponsorName)),
     });

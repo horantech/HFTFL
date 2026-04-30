@@ -15,6 +15,7 @@ export async function POST() {
         ticketCode: guests.ticketCode,
         shortCode: guests.shortCode,
         tableNumber: sponsors.tableNumber,
+        sponsorName: sponsors.name,
       })
       .from(guests)
       .innerJoin(sponsors, eq(sponsors.id, guests.sponsorId))
@@ -23,13 +24,26 @@ export async function POST() {
         or(eq(sponsors.paid, true), eq(guests.paid, true)),
       ));
 
-    // No phone dedup — each guest with a phone gets their own reminder, even
-    // if multiple guests share the same number. The personalized greeting and
-    // QR code link justify a duplicate text to the shared phone.
-    let sent = 0, failed = 0, noPhone = 0;
+    // One SMS per phone number. Tie-breaker when multiple eligible guests
+    // share a phone: prefer the guest whose name matches their sponsor's
+    // name — that's the "sponsor person" (lead rep, individual, or anyone
+    // entered as the sponsor's own ticket). Falling back to first-seen.
+    function isSponsorPerson(g: typeof list[number]): boolean {
+      return g.name.trim().toLowerCase() === g.sponsorName.trim().toLowerCase();
+    }
+    const byPhone = new Map<string, typeof list[number]>();
+    let noPhone = 0;
     for (const g of list) {
       if (!g.phone) { noPhone++; continue; }
-      const r = await sendSms(g.phone, buildReminderMessage({ name: g.name, code: g.shortCode ?? g.ticketCode, tableNumber: g.tableNumber }));
+      const cur = byPhone.get(g.phone);
+      if (!cur) { byPhone.set(g.phone, g); continue; }
+      if (isSponsorPerson(g) && !isSponsorPerson(cur)) byPhone.set(g.phone, g);
+    }
+    const recipients = Array.from(byPhone.values());
+
+    let sent = 0, failed = 0;
+    for (const g of recipients) {
+      const r = await sendSms(g.phone!, buildReminderMessage({ name: g.name, code: g.shortCode ?? g.ticketCode, tableNumber: g.tableNumber }));
       if (r.ok) {
         sent++;
         await db.update(guests).set({ smsSentAt: new Date(), smsLastStatus: "sent", smsLastError: null }).where(eq(guests.id, g.id));
@@ -39,12 +53,15 @@ export async function POST() {
       }
     }
 
+    const dedupSkipped = list.length - noPhone - recipients.length;
     return NextResponse.json({
       ok: true,
       sent,
       failed,
-      skipped: noPhone,
+      skipped: noPhone + dedupSkipped,
       noPhone,
+      dedupSkipped,
+      uniquePhones: recipients.length,
       eligibleCount: list.length,
     });
   } catch (err) {

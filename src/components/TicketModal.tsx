@@ -8,6 +8,7 @@ import { renderTicketCanvas } from "@/lib/ticket";
 
 export type TicketModalData = {
   ticketCode: string;
+  shortCode?: string | null;
   guestName: string;
   sponsorName: string;
 };
@@ -23,14 +24,19 @@ export default function TicketModal({
   const [downloading, setDownloading] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
+  // Prefer the 4-char short code so the QR is denser and the value matches
+  // what's in the SMS link. Falls back to the UUID for tickets that haven't
+  // been backfilled.
+  const codeForQr = data?.shortCode || data?.ticketCode;
+
   useEffect(() => {
-    if (!data) return;
-    QRCode.toDataURL(data.ticketCode, {
+    if (!data || !codeForQr) return;
+    QRCode.toDataURL(codeForQr, {
       margin: 1,
       width: 600,
       color: { dark: "#1f3a1c", light: "#ffffff" },
     }).then(setQr).catch(() => setQr(""));
-  }, [data]);
+  }, [data, codeForQr]);
 
   useEffect(() => {
     if (!data) return;
@@ -42,8 +48,8 @@ export default function TicketModal({
   if (!data) return null;
 
   const ticketUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/t/${data.ticketCode}`
-    : `/t/${data.ticketCode}`;
+    ? `${window.location.origin}/t/${codeForQr}`
+    : `/t/${codeForQr}`;
 
   async function download() {
     if (!qr || !data) return;

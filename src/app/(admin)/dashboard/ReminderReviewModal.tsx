@@ -10,6 +10,7 @@ type Preview = {
   ok: true;
   recipients: number;
   noPhone: number;
+  dedupSkipped: number;
   totalRows: number;
   sponsorsMissingTable: Missing[];
 };
@@ -90,7 +91,7 @@ export default function ReminderReviewModal({ open, onClose }: { open: boolean; 
       const r = await fetch("/api/sms/reminder-all", { method: "POST" });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) { toast(j.error || "Failed to send reminders", "error"); return; }
-      toast(`Sent ${j.sent} · failed ${j.failed} · no phone ${j.noPhone}`, "success");
+      toast(`Sent ${j.sent} · failed ${j.failed} · dedup ${j.dedupSkipped} · no phone ${j.noPhone}`, "success");
       router.refresh();
       onClose();
     } finally {
@@ -121,10 +122,16 @@ export default function ReminderReviewModal({ open, onClose }: { open: boolean; 
 
           {preview && (
             <>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <Stat label="Will send" value={preview.recipients}/>
+                <Stat label="Shared phone" value={preview.dedupSkipped}/>
                 <Stat label="No phone" value={preview.noPhone}/>
               </div>
+              {preview.dedupSkipped > 0 && (
+                <p className="text-xs text-[var(--ink-mute)]">
+                  {preview.dedupSkipped} guest{preview.dedupSkipped === 1 ? "" : "s"} share a phone with someone else and won&apos;t receive a separate SMS — sponsor&apos;s ticket wins on a shared line.
+                </p>
+              )}
 
               {preview.sponsorsMissingTable.length > 0 ? (
                 <div className="card !p-3 border-amber-300 bg-amber-50/40 space-y-3">

@@ -29,10 +29,14 @@ export default function Scanner() {
     lastCodeRef.current = { code: decoded, at: now };
 
     let code = decoded.trim();
-    const match = code.match(/\/t\/([0-9a-f-]{36})/i);
-    if (match) code = match[1];
+    // QR may contain either the bare code or a full /t/<code> URL. Accept
+    // both the historic 36-char UUID and the 4-8 char short code.
+    const urlMatch = code.match(/\/t\/([A-Za-z0-9-]+)/i);
+    if (urlMatch) code = urlMatch[1];
 
-    if (!/^[0-9a-f-]{36}$/i.test(code)) {
+    const isUuid = /^[0-9a-f-]{36}$/i.test(code);
+    const isShort = /^[A-Za-z0-9]{4,8}$/.test(code);
+    if (!isUuid && !isShort) {
       blockedRef.current = true;
       setResult({ kind: "invalid", message: "Not a valid ticket QR" });
       beep("warn");
