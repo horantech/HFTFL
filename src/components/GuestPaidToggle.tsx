@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/lib/toast";
 
@@ -8,6 +8,13 @@ export default function GuestPaidToggle({ id, paid }: { id: string; paid: boolea
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [value, setValue] = useState(paid);
+
+  // Sync when the prop changes (e.g. after a sponsor-level cascade triggers
+  // router.refresh() and this guest's paid flag flips on the server).
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setValue(paid);
+  }, [paid]);
 
   async function toggle() {
     setBusy(true);

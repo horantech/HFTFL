@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function PaidToggle({ id, paid }: { id: string; paid: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [value, setValue] = useState(paid);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setValue(paid);
+  }, [paid]);
 
   async function toggle() {
     setBusy(true);
