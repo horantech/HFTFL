@@ -84,25 +84,55 @@ export default function PeopleTable({
     return m;
   }, [sponsors]);
 
+  // Phone-shape helpers. Ethiopian mobiles get written as 0911..., +251911...,
+  // 251911..., or with random spaces/dashes — we collapse to the bare local
+  // significant digits so any of those typed forms find the same row. Also
+  // covers partial searches like "911 365" matching "+251 911 365 308".
   const term = q.trim().toLowerCase();
+  function phoneCore(s: string | null | undefined): string {
+    if (!s) return "";
+    let d = s.replace(/\D/g, "");
+    if (d.startsWith("251")) d = d.slice(3);
+    if (d.startsWith("0")) d = d.slice(1);
+    return d;
+  }
+  // Token-AND search: split on whitespace, every token must match somewhere
+  // (substring in the haystack OR digit-substring in the phone). So "yohannes
+  // 11" matches a Yohannes at table 11 with phone containing 11, etc.
+  const tokens = term ? term.split(/\s+/).filter(Boolean) : [];
+  function matchTokens(haystack: string, phoneDigits: string): boolean {
+    return tokens.every(t => {
+      if (haystack.includes(t)) return true;
+      const tDigits = t.replace(/\D/g, "");
+      if (!tDigits) return false;
+      const tCore = tDigits.startsWith("251") ? tDigits.slice(3)
+                  : tDigits.startsWith("0") ? tDigits.slice(1) : tDigits;
+      return phoneDigits.includes(tCore);
+    });
+  }
+
   function matchesSponsor(s: SponsorRow): boolean {
-    if (!term) return true;
-    return (
-      s.name.toLowerCase().includes(term) ||
-      (s.contactPhone?.toLowerCase().includes(term) ?? false) ||
-      (s.contactEmail?.toLowerCase().includes(term) ?? false) ||
-      (s.notes?.toLowerCase().includes(term) ?? false)
-    );
+    if (tokens.length === 0) return true;
+    const haystack = [
+      s.name,
+      s.contactPhone,
+      s.contactEmail,
+      s.notes,
+      s.tableNumber ? `table ${s.tableNumber}` : null,
+    ].filter(Boolean).join(" ").toLowerCase();
+    return matchTokens(haystack, phoneCore(s.contactPhone));
   }
   function matchesGuest(g: GuestRow): boolean {
-    if (!term) return true;
-    return (
-      g.name.toLowerCase().includes(term) ||
-      (g.phone?.toLowerCase().includes(term) ?? false) ||
-      (g.email?.toLowerCase().includes(term) ?? false) ||
-      g.sponsorName.toLowerCase().includes(term) ||
-      (sponsorNotesById.get(g.sponsorId)?.includes(term) ?? false)
-    );
+    if (tokens.length === 0) return true;
+    const haystack = [
+      g.name,
+      g.phone,
+      g.email,
+      g.sponsorName,
+      sponsorNotesById.get(g.sponsorId) ?? null,
+      g.sponsorTableNumber ? `table ${g.sponsorTableNumber}` : null,
+    ].filter(Boolean).join(" ").toLowerCase();
+    return matchTokens(haystack, phoneCore(g.phone));
   }
 
   const filteredSponsors = useMemo(() => {
@@ -283,7 +313,7 @@ export default function PeopleTable({
           autoFocus={false}
           value={q}
           onChange={e => setQ(e.target.value)}
-          placeholder="Search guest, sponsor, company, phone…"
+          placeholder="Search name, phone (0911 / +251911), company, table…"
           className="input border-0 px-0 flex-1 min-w-0"
           style={{ boxShadow: "none" }}
         />
