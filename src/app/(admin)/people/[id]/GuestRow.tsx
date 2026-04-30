@@ -10,6 +10,7 @@ import { confirmDialog } from "@/lib/confirm";
 import { toast } from "@/lib/toast";
 import TicketModal, { type TicketModalData } from "@/components/TicketModal";
 import GuestPaidToggle from "@/components/GuestPaidToggle";
+import SmsStatusBadge from "@/components/SmsStatusBadge";
 
 type Props = {
   guest: Guest;
@@ -87,6 +88,7 @@ export default function GuestRow({ guest, sponsorName, sponsorPaid = false, vari
     const j = await r.json().catch(() => ({}));
     if (!r.ok) toast(j.error || "Failed to send reminder", "error");
     else toast(`Reminder sent to ${guest.name}`, "success");
+    router.refresh();
     setBusy(null);
   }
 
@@ -127,6 +129,7 @@ export default function GuestRow({ guest, sponsorName, sponsorPaid = false, vari
           <div className="flex items-center gap-1.5 flex-wrap justify-end">
             <GuestPaidToggle id={guest.id} paid={guest.paid}/>
             {statusBadge}
+            <SmsStatusBadge status={guest.smsLastStatus} sentAt={guest.smsSentAt} error={guest.smsLastError}/>
           </div>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -185,6 +188,7 @@ export default function GuestRow({ guest, sponsorName, sponsorPaid = false, vari
         <div className="flex items-center gap-1.5 flex-wrap">
           <GuestPaidToggle id={guest.id} paid={guest.paid}/>
           {statusBadge}
+          <SmsStatusBadge status={guest.smsLastStatus} sentAt={guest.smsSentAt} error={guest.smsLastError}/>
         </div>
       </td>
       <td>

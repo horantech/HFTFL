@@ -25,14 +25,17 @@ function ticketUrl(code: string) {
 
 function tableLine(tableNumber?: string | null) {
   const t = tableNumber?.trim();
-  return t ? ` Your table Number is ${t}.` : "";
+  return t ? ` Table ${t}.` : "";
 }
 
+// Kept under 160 GSM-7 chars so each send fits in 1 SMS segment. Em-dash and
+// curly quotes are intentionally avoided — they force UCS-2 encoding (70-char
+// ceiling) and would balloon a single message to 2-3 segments.
 export function buildReminderMessage(opts: { name: string; code: string; tableNumber?: string | null }) {
   const url = ticketUrl(opts.code);
   return (
     `Dear ${opts.name},\n` +
-    `Reminder: Hope for the Fatherless Dinner is Today at ${EVENT.time}, ${EVENT.venue}.${tableLine(opts.tableNumber)} — Show your QR code at the entrance: ${url}`
+    `Reminder: HFTF Dinner is Today at ${EVENT.time}, ${EVENT.venue}.${tableLine(opts.tableNumber)} QR: ${url}`
   );
 }
 

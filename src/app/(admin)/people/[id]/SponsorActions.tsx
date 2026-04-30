@@ -44,7 +44,7 @@ export default function SponsorActions({
   async function remindAll() {
     const ok = await confirmDialog({
       title: `Send reminder to all guests of ${sponsorName}?`,
-      message: "Eligible: paid, has phone, not yet checked in. Duplicate phones are deduplicated.",
+      message: "Eligible: paid, has phone, not yet checked in. One SMS per guest, even if they share a phone.",
       confirmLabel: "Send reminders",
     });
     if (!ok) return;
@@ -52,7 +52,8 @@ export default function SponsorActions({
     const res = await fetch(`/api/sponsors/${sponsorId}/reminder`, { method: "POST" });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) toast(j.error || "Failed to send reminders", "error");
-    else toast(`Sent ${j.sent} · failed ${j.failed} · dedup skipped ${j.dedupSkipped}`, "success");
+    else toast(`Sent ${j.sent} · failed ${j.failed}`, "success");
+    router.refresh();
     setBusy(null);
   }
 

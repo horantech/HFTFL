@@ -13,6 +13,7 @@ export async function POST() {
         name: guests.name,
         phone: guests.phone,
         ticketCode: guests.ticketCode,
+        shortCode: guests.shortCode,
         tableNumber: sponsors.tableNumber,
       })
       .from(guests)
@@ -22,33 +23,29 @@ export async function POST() {
         or(eq(sponsors.paid, true), eq(guests.paid, true)),
       ));
 
-    // Dedup by phone number — many guests share a single contact phone (e.g.,
-    // groups under one buyer). Send one reminder per unique phone, keyed on the
-    // first guest we see for that number.
-    const byPhone = new Map<string, typeof list[number]>();
-    let noPhone = 0;
+    // No phone dedup — each guest with a phone gets their own reminder, even
+    // if multiple guests share the same number. The personalized greeting and
+    // QR code link justify a duplicate text to the shared phone.
+    let sent = 0, failed = 0, noPhone = 0;
     for (const g of list) {
       if (!g.phone) { noPhone++; continue; }
-      if (!byPhone.has(g.phone)) byPhone.set(g.phone, g);
+      const r = await sendSms(g.phone, buildReminderMessage({ name: g.name, code: g.shortCode ?? g.ticketCode, tableNumber: g.tableNumber }));
+      if (r.ok) {
+        sent++;
+        await db.update(guests).set({ smsSentAt: new Date(), smsLastStatus: "sent", smsLastError: null }).where(eq(guests.id, g.id));
+      } else {
+        failed++;
+        await db.update(guests).set({ smsLastStatus: "failed", smsLastError: r.error.slice(0, 500) }).where(eq(guests.id, g.id));
+      }
     }
 
-    let sent = 0, failed = 0;
-    for (const g of byPhone.values()) {
-      if (!g.phone) continue;
-      const r = await sendSms(g.phone, buildReminderMessage({ name: g.name, code: g.ticketCode, tableNumber: g.tableNumber }));
-      if (r.ok) sent++; else failed++;
-    }
-
-    const dedupSkipped = list.length - byPhone.size - noPhone;
     return NextResponse.json({
       ok: true,
       sent,
       failed,
-      skipped: noPhone + dedupSkipped,
-      // Diagnostics so staff can see the dedup math:
-      uniquePhones: byPhone.size,
+      skipped: noPhone,
       noPhone,
-      dedupSkipped,
+      eligibleCount: list.length,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

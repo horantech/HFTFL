@@ -4,9 +4,10 @@ import { guests, sponsors } from "@/db/schema";
 import { and, isNull, eq, or } from "drizzle-orm";
 import { isSmsConfigured } from "@/lib/sms";
 
-// Pre-flight for the bulk reminder send. Returns the recipient roster after
-// phone dedup, plus a list of sponsors who will receive ≥1 reminder but have
-// no table number on file — so staff can fill those in before firing.
+// Pre-flight for the bulk reminder send. Returns the recipient count plus a
+// list of sponsors that will receive ≥1 reminder but have no table number on
+// file — so staff can fill those in before firing. One SMS per eligible guest
+// (no phone dedup); duplicates to a shared phone are intentional.
 export async function GET() {
   try {
     if (!isSmsConfigured()) return NextResponse.json({ error: "SMS not configured" }, { status: 400 });
@@ -28,13 +29,10 @@ export async function GET() {
       ));
 
     let noPhone = 0;
-    const byPhone = new Map<string, typeof list[number]>();
-    for (const g of list) {
-      if (!g.phone) { noPhone++; continue; }
-      if (!byPhone.has(g.phone)) byPhone.set(g.phone, g);
-    }
-
-    const recipients = Array.from(byPhone.values());
+    const recipients = list.filter(g => {
+      if (!g.phone) { noPhone++; return false; }
+      return true;
+    });
 
     // Sponsors that would receive ≥1 reminder but currently have no table number.
     type Missing = { sponsorId: string; sponsorName: string; recipientCount: number };
@@ -49,10 +47,9 @@ export async function GET() {
 
     return NextResponse.json({
       ok: true,
-      uniquePhones: recipients.length,
+      recipients: recipients.length,
       noPhone,
       totalRows: list.length,
-      dedupSkipped: list.length - recipients.length - noPhone,
       sponsorsMissingTable: Array.from(missing.values()).sort((a, b) => a.sponsorName.localeCompare(b.sponsorName)),
     });
   } catch (err) {

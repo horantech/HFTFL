@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { sponsors, guests } from "@/db/schema";
 import { z } from "zod";
 import { normalizePhone } from "@/lib/utils";
+import { generateShortCode } from "@/lib/shortCode";
 
 const Body = z.object({
   name: z.string().min(1).max(200),
@@ -58,6 +59,7 @@ export async function POST(req: Request) {
           phone: normalizePhone(g.phone),
           whatsappPhone: normalizePhone(g.whatsappPhone),
           email: g.email?.trim() || null,
+          shortCode: generateShortCode(),
         })),
     );
   }

@@ -9,6 +9,7 @@ import { toast } from "@/lib/toast";
 import { confirmDialog } from "@/lib/confirm";
 import TicketModal, { type TicketModalData } from "@/components/TicketModal";
 import GuestPaidToggle from "@/components/GuestPaidToggle";
+import SmsStatusBadge, { aggregateSmsStatus } from "@/components/SmsStatusBadge";
 
 type SponsorRow = {
   id: string;
@@ -32,6 +33,8 @@ type GuestRow = {
   ticketCode: string;
   checkedInAt: Date | null;
   smsSentAt: Date | null;
+  smsLastStatus: string | null;
+  smsLastError: string | null;
   paid: boolean;
   sponsorName: string;
   sponsorIsIndividual: boolean;
@@ -68,13 +71,24 @@ export default function PeopleTable({
     return m;
   }, [guests]);
 
+  // Company names are stored two ways: as the sponsor's name when the sponsor
+  // type is "company", and inside `notes` (e.g. "Represents Acme Corp") when
+  // the sponsor is a representative for a company. The notes lookup lets
+  // guests under a representative surface when staff types the org's name.
+  const sponsorNotesById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const s of sponsors) if (s.notes) m.set(s.id, s.notes.toLowerCase());
+    return m;
+  }, [sponsors]);
+
   const term = q.trim().toLowerCase();
   function matchesSponsor(s: SponsorRow): boolean {
     if (!term) return true;
     return (
       s.name.toLowerCase().includes(term) ||
       (s.contactPhone?.toLowerCase().includes(term) ?? false) ||
-      (s.contactEmail?.toLowerCase().includes(term) ?? false)
+      (s.contactEmail?.toLowerCase().includes(term) ?? false) ||
+      (s.notes?.toLowerCase().includes(term) ?? false)
     );
   }
   function matchesGuest(g: GuestRow): boolean {
@@ -83,7 +97,8 @@ export default function PeopleTable({
       g.name.toLowerCase().includes(term) ||
       (g.phone?.toLowerCase().includes(term) ?? false) ||
       (g.email?.toLowerCase().includes(term) ?? false) ||
-      g.sponsorName.toLowerCase().includes(term)
+      g.sponsorName.toLowerCase().includes(term) ||
+      (sponsorNotesById.get(g.sponsorId)?.includes(term) ?? false)
     );
   }
 
@@ -194,12 +209,13 @@ export default function PeopleTable({
     const j = await r.json().catch(() => ({}));
     if (!r.ok) toast(j.error || "Failed to send reminder", "error");
     else toast(`Reminder sent to ${name}`, "success");
+    router.refresh();
     setBusy(null);
   }
   async function remindSponsor(id: string, name: string) {
     const ok = await confirmDialog({
       title: `Send reminder to all guests of ${name}?`,
-      message: "Eligible: paid, has phone, not yet checked in. Duplicate phones are deduplicated.",
+      message: "Eligible: paid, has phone, not yet checked in. One SMS per guest, even if they share a phone.",
       confirmLabel: "Send reminders",
     });
     if (!ok) return;
@@ -207,7 +223,8 @@ export default function PeopleTable({
     const r = await fetch(`/api/sponsors/${id}/reminder`, { method: "POST" });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) toast(j.error || "Failed to send reminders", "error");
-    else toast(`Sent ${j.sent} · failed ${j.failed} · dedup skipped ${j.dedupSkipped}`, "success");
+    else toast(`Sent ${j.sent} · failed ${j.failed}`, "success");
+    router.refresh();
     setBusy(null);
   }
   async function deleteGuest(id: string, name: string) {
@@ -263,7 +280,7 @@ export default function PeopleTable({
           autoFocus={false}
           value={q}
           onChange={e => setQ(e.target.value)}
-          placeholder="Search guest, sponsor, phone…"
+          placeholder="Search guest, sponsor, company, phone…"
           className="input border-0 px-0 flex-1 min-w-0"
           style={{ boxShadow: "none" }}
         />
@@ -312,6 +329,7 @@ export default function PeopleTable({
               {g.checkedInAt
                 ? <span className="badge badge-success">Checked in · {formatTime(g.checkedInAt)}</span>
                 : <span className="badge">Pending</span>}
+              <SmsStatusBadge status={g.smsLastStatus} sentAt={g.smsSentAt} error={g.smsLastError}/>
             </div>
             <div className="flex flex-wrap gap-1.5">
               <button onClick={() => setTicketModal({ ticketCode: g.ticketCode, guestName: g.name, sponsorName: g.sponsorName })} className="btn btn-ghost btn-sm" title="View ticket"><ExternalLink size={14}/> View</button>
@@ -355,6 +373,7 @@ export default function PeopleTable({
                     {g.checkedInAt
                       ? <span className="badge badge-success">In · {formatTime(g.checkedInAt)}</span>
                       : <span className="badge">Pending</span>}
+                    <SmsStatusBadge status={g.smsLastStatus} sentAt={g.smsSentAt} error={g.smsLastError}/>
                   </div>
                 </td>
                 <td className="text-right">
@@ -409,6 +428,7 @@ export default function PeopleTable({
               >
                 {s.paid ? "Paid" : "Unpaid"}
               </button>
+              <SmsStatusBadge status={aggregateSmsStatus(sGuests)} size="xs"/>
             </div>
             <div className="flex flex-wrap gap-1.5">
               <Link href={`/people/${s.id}`} className="btn btn-ghost btn-sm">Open</Link>
@@ -436,6 +456,7 @@ export default function PeopleTable({
                         {g.checkedInAt
                           ? <span className="badge badge-success">In</span>
                           : <span className="badge">Pending</span>}
+                        <SmsStatusBadge status={g.smsLastStatus} sentAt={g.smsSentAt} error={g.smsLastError} size="xs"/>
                       </div>
                     </div>
                     <div className="text-xs text-[var(--ink-mute)]">{g.phone || "—"}</div>
@@ -532,13 +553,16 @@ export default function PeopleTable({
                     )}
                   </td>
                   <td>
-                    <button
-                      onClick={stop(() => setPaid(s.id, !s.paid))}
-                      disabled={busy === "p-" + s.id}
-                      className={s.paid ? "badge badge-success cursor-pointer" : "badge cursor-pointer hover:bg-[var(--bg)]"}
-                    >
-                      {s.paid ? "Paid" : "Unpaid"}
-                    </button>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        onClick={stop(() => setPaid(s.id, !s.paid))}
+                        disabled={busy === "p-" + s.id}
+                        className={s.paid ? "badge badge-success cursor-pointer" : "badge cursor-pointer hover:bg-[var(--bg)]"}
+                      >
+                        {s.paid ? "Paid" : "Unpaid"}
+                      </button>
+                      <SmsStatusBadge status={aggregateSmsStatus(sGuests)} size="xs"/>
+                    </div>
                   </td>
                   <td className="text-right">
                     <div className="inline-flex gap-1" onClick={(e) => e.stopPropagation()}>
@@ -576,6 +600,7 @@ export default function PeopleTable({
                             {g.checkedInAt
                               ? <span className="badge badge-success">In · {formatTime(g.checkedInAt)}</span>
                               : <span className="badge">Pending</span>}
+                            <SmsStatusBadge status={g.smsLastStatus} sentAt={g.smsSentAt} error={g.smsLastError}/>
                           </div>
                         </td>
                         <td className="text-right">

@@ -1,20 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { X, Bell, AlertTriangle } from "lucide-react";
 import { toast } from "@/lib/toast";
 
 type Missing = { sponsorId: string; sponsorName: string; recipientCount: number };
 type Preview = {
   ok: true;
-  uniquePhones: number;
+  recipients: number;
   noPhone: number;
   totalRows: number;
-  dedupSkipped: number;
   sponsorsMissingTable: Missing[];
 };
 
 export default function ReminderReviewModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [tables, setTables] = useState<Record<string, string>>({});
@@ -89,7 +90,8 @@ export default function ReminderReviewModal({ open, onClose }: { open: boolean; 
       const r = await fetch("/api/sms/reminder-all", { method: "POST" });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) { toast(j.error || "Failed to send reminders", "error"); return; }
-      toast(`Sent ${j.sent} · failed ${j.failed} · skipped ${j.skipped}`, "success");
+      toast(`Sent ${j.sent} · failed ${j.failed} · no phone ${j.noPhone}`, "success");
+      router.refresh();
       onClose();
     } finally {
       setSending(false);
@@ -119,10 +121,9 @@ export default function ReminderReviewModal({ open, onClose }: { open: boolean; 
 
           {preview && (
             <>
-              <div className="grid grid-cols-3 gap-2">
-                <Stat label="Will send" value={preview.uniquePhones}/>
+              <div className="grid grid-cols-2 gap-2">
+                <Stat label="Will send" value={preview.recipients}/>
                 <Stat label="No phone" value={preview.noPhone}/>
-                <Stat label="Dedup skipped" value={preview.dedupSkipped}/>
               </div>
 
               {preview.sponsorsMissingTable.length > 0 ? (
@@ -173,10 +174,10 @@ export default function ReminderReviewModal({ open, onClose }: { open: boolean; 
                 <button onClick={onClose} disabled={sending} className="btn btn-ghost btn-sm">Cancel</button>
                 <button
                   onClick={send}
-                  disabled={sending || preview.uniquePhones === 0}
+                  disabled={sending || preview.recipients === 0}
                   className="btn btn-primary btn-sm"
                 >
-                  <Bell size={14}/> {sending ? "Sending…" : `Send to ${preview.uniquePhones}`}
+                  <Bell size={14}/> {sending ? "Sending…" : `Send ${preview.recipients}`}
                 </button>
               </div>
             </>

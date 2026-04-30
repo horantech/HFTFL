@@ -27,9 +27,13 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
     const res = await sendSms(
       g.phone,
-      buildReminderMessage({ name: g.name, code: g.ticketCode, tableNumber: sponsor?.tableNumber }),
+      buildReminderMessage({ name: g.name, code: g.shortCode ?? g.ticketCode, tableNumber: sponsor?.tableNumber }),
     );
-    if (!res.ok) return NextResponse.json({ error: res.error }, { status: 502 });
+    if (!res.ok) {
+      await db.update(guests).set({ smsLastStatus: "failed", smsLastError: res.error.slice(0, 500) }).where(eq(guests.id, g.id));
+      return NextResponse.json({ error: res.error }, { status: 502 });
+    }
+    await db.update(guests).set({ smsSentAt: new Date(), smsLastStatus: "sent", smsLastError: null }).where(eq(guests.id, g.id));
     return NextResponse.json({ ok: true, sid: res.sid });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

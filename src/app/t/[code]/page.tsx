@@ -1,37 +1,51 @@
 import { db } from "@/db";
 import { guests, sponsors } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import TicketActions from "./TicketActions";
 
 export const dynamic = "force-dynamic";
 
+const UUID_RE = /^[0-9a-f-]{36}$/i;
+const SHORT_RE = /^[A-Za-z0-9]{4,8}$/;
+
 async function getTicket(code: string) {
+  // Match either the historic UUID or the shortened 4-char code in a single
+  // query. Postgres ignores the UUID branch when the input doesn't parse as
+  // a UUID, so we only call it when the regex confirms it.
+  const isUuid = UUID_RE.test(code);
+  const where = isUuid
+    ? or(eq(guests.ticketCode, code), eq(guests.shortCode, code))
+    : eq(guests.shortCode, code);
   const [row] = await db
     .select({
       guestId: guests.id,
       guestName: guests.name,
       ticketCode: guests.ticketCode,
+      shortCode: guests.shortCode,
       checkedInAt: guests.checkedInAt,
       sponsorName: sponsors.name,
     })
     .from(guests)
     .innerJoin(sponsors, eq(sponsors.id, guests.sponsorId))
-    .where(eq(guests.ticketCode, code))
+    .where(where)
     .limit(1);
   return row;
 }
 
 export default async function TicketPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
-  if (!/^[0-9a-f-]{36}$/i.test(code)) notFound();
+  if (!UUID_RE.test(code) && !SHORT_RE.test(code)) notFound();
   const t = await getTicket(code);
   if (!t) notFound();
 
+  // Prefer the short code in the visible URL/QR — keeps tickets compact and
+  // matches what the SMS link points to.
+  const canonical = t.shortCode ?? t.ticketCode;
   const base = process.env.NEXT_PUBLIC_APP_URL || "";
-  const url = `${(base || "").replace(/\/$/, "")}/t/${t.ticketCode}`;
-  const qrDataUrl = await QRCode.toDataURL(t.ticketCode, {
+  const url = `${(base || "").replace(/\/$/, "")}/t/${canonical}`;
+  const qrDataUrl = await QRCode.toDataURL(canonical, {
     margin: 1,
     width: 600,
     color: { dark: "#1f3a1c", light: "#ffffff" },

@@ -5,7 +5,8 @@ import { and, isNull, eq } from "drizzle-orm";
 import { sendSms, buildReminderMessage, isSmsConfigured } from "@/lib/sms";
 
 // Send reminder SMS to every paid + not-yet-checked-in guest under one sponsor.
-// Deduplicates by phone, so multiple guests sharing a contact only get one SMS.
+// One SMS per guest with a phone — duplicates to the same number are intentional
+// since each guest's QR code is unique.
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -32,28 +33,26 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       );
     }
 
-    // Dedup by phone — first guest wins.
-    const byPhone = new Map<string, typeof eligible[number]>();
-    for (const g of eligible) {
-      if (!byPhone.has(g.phone!)) byPhone.set(g.phone!, g);
-    }
-
     let sent = 0, failed = 0;
-    for (const g of byPhone.values()) {
+    for (const g of eligible) {
       const r = await sendSms(
         g.phone!,
-        buildReminderMessage({ name: g.name, code: g.ticketCode, tableNumber: sponsor.tableNumber }),
+        buildReminderMessage({ name: g.name, code: g.shortCode ?? g.ticketCode, tableNumber: sponsor.tableNumber }),
       );
-      if (r.ok) sent++; else failed++;
+      if (r.ok) {
+        sent++;
+        await db.update(guests).set({ smsSentAt: new Date(), smsLastStatus: "sent", smsLastError: null }).where(eq(guests.id, g.id));
+      } else {
+        failed++;
+        await db.update(guests).set({ smsLastStatus: "failed", smsLastError: r.error.slice(0, 500) }).where(eq(guests.id, g.id));
+      }
     }
 
     return NextResponse.json({
       ok: true,
       sent,
       failed,
-      uniquePhones: byPhone.size,
       eligibleCount: eligible.length,
-      dedupSkipped: eligible.length - byPhone.size,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

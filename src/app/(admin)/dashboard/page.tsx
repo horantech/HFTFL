@@ -54,6 +54,8 @@ async function loadPeople() {
       ticketCode: guests.ticketCode,
       checkedInAt: guests.checkedInAt,
       smsSentAt: guests.smsSentAt,
+      smsLastStatus: guests.smsLastStatus,
+      smsLastError: guests.smsLastError,
       paid: guests.paid,
       sponsorName: sponsors.name,
       sponsorIsIndividual: sponsors.isIndividual,

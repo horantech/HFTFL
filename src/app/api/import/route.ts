@@ -4,6 +4,7 @@ import { guests, sponsors } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { normalizePhone } from "@/lib/utils";
+import { generateShortCode } from "@/lib/shortCode";
 
 const Body = z.object({
   mode: z.enum(["existing", "new", "individuals"]),
@@ -88,6 +89,7 @@ export async function POST(req: Request) {
       .returning({ id: sponsors.id });
     await db.insert(guests).values({
       sponsorId: sp.id, name, phone, email, scheduled, paid, notes,
+      shortCode: generateShortCode(),
     });
     created++;
   }
@@ -107,6 +109,7 @@ async function insertGuests(sponsorId: string, rows: Array<Record<string, string
       scheduled: pick(row, "scheduled"),
       paid: parseBool(pick(row, "paid")),
       notes: pick(row, "notes", "note"),
+      shortCode: generateShortCode(),
     });
     created++;
   }
