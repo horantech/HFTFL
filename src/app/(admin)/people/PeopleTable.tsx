@@ -19,6 +19,7 @@ type SponsorRow = {
   isIndividual: boolean;
   paid: boolean;
   notes: string | null;
+  tableNumber: string | null;
   createdAt: Date;
   total: number;
   checkedIn: number;
@@ -40,6 +41,7 @@ type GuestRow = {
   sponsorName: string;
   sponsorIsIndividual: boolean;
   sponsorPaid: boolean;
+  sponsorTableNumber: string | null;
   createdAt: Date;
 };
 
@@ -322,7 +324,10 @@ export default function PeopleTable({
                   {g.sponsorName}{g.sponsorIsIndividual ? " · individual" : ""}
                 </div>
               </div>
-              <span className="badge badge-ink">Guest</span>
+              <div className="flex flex-col items-end gap-1">
+                <span className="badge badge-ink">Guest</span>
+                {g.sponsorTableNumber && <span className="badge">Table {g.sponsorTableNumber}</span>}
+              </div>
             </div>
             <div className="text-xs text-[var(--ink-mute)]">{g.phone || "—"}</div>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -353,6 +358,7 @@ export default function PeopleTable({
               <th>Name</th>
               <th>Sponsor</th>
               <th>Phone</th>
+              <th>Table</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -368,6 +374,7 @@ export default function PeopleTable({
                   </span>
                 </td>
                 <td className="text-[var(--ink-mute)]">{g.phone || "—"}</td>
+                <td>{g.sponsorTableNumber ? <span className="badge">{g.sponsorTableNumber}</span> : <span className="text-[var(--ink-mute)]">—</span>}</td>
                 <td>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <GuestPaidToggle id={g.id} paid={g.paid}/>
@@ -429,6 +436,7 @@ export default function PeopleTable({
               >
                 {s.paid ? "Paid" : "Unpaid"}
               </button>
+              {s.tableNumber && <span className="badge">Table {s.tableNumber}</span>}
               <SmsStatusBadge status={aggregateSmsStatus(sGuests)} size="xs"/>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -544,7 +552,10 @@ export default function PeopleTable({
                       {s.isIndividual ? "Individual" : "Sponsor"}
                     </span>
                   </td>
-                  <td className="font-medium">{s.name}</td>
+                  <td>
+                    <div className="font-medium">{s.name}</div>
+                    {s.tableNumber && <div className="text-[10px] text-[var(--ink-mute)] mt-0.5">Table {s.tableNumber}</div>}
+                  </td>
                   <td className="text-[var(--ink-mute)]">{s.contactPhone || "—"}</td>
                   <td>
                     {s.total === 0 ? <span className="text-[var(--ink-mute)]">0</span> : (

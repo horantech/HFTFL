@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { guests, sponsors } from "@/db/schema";
 import { and, isNull, eq } from "drizzle-orm";
-import { sendSms, buildReminderMessage, isSmsConfigured } from "@/lib/sms";
+import { sendSms, buildReminderMessage, isSmsConfigured, SEND_DELAY_MS, sleep } from "@/lib/sms";
+
+// Headroom for sponsors with many guests under one ticket buyer.
+export const maxDuration = 300;
 
 // Send reminder SMS to every paid + not-yet-checked-in guest under one sponsor.
 // One SMS per phone number; if guests share a phone, the sponsor's own ticket
@@ -48,7 +51,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     const recipients = Array.from(byPhone.values());
 
     let sent = 0, failed = 0;
-    for (const g of recipients) {
+    for (let i = 0; i < recipients.length; i++) {
+      const g = recipients[i];
       const r = await sendSms(
         g.phone!,
         buildReminderMessage({ name: g.name, code: g.shortCode ?? g.ticketCode, tableNumber: sponsor.tableNumber }),
@@ -60,6 +64,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         failed++;
         await db.update(guests).set({ smsLastStatus: "failed", smsLastError: r.error.slice(0, 500) }).where(eq(guests.id, g.id));
       }
+      if (i < recipients.length - 1) await sleep(SEND_DELAY_MS);
     }
 
     return NextResponse.json({

@@ -33,6 +33,7 @@ export async function POST(req: Request) {
       name: guests.name,
       checkedInAt: guests.checkedInAt,
       sponsorName: sponsors.name,
+      tableNumber: sponsors.tableNumber,
     })
     .from(guests)
     .innerJoin(sponsors, eq(sponsors.id, guests.sponsorId))
@@ -50,6 +51,7 @@ export async function POST(req: Request) {
     guest: {
       name: row.name,
       sponsorName: row.sponsorName,
+      tableNumber: row.tableNumber,
       checkedInAt: row.checkedInAt,
     },
   });

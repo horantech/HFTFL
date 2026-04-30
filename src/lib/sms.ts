@@ -62,3 +62,13 @@ export function isSmsConfigured() {
       process.env.TWILIO_FROM,
   );
 }
+
+// Bulk-send pacing for Twilio US long codes -> Ethio Telecom. Burst sends
+// trigger carrier-side spam blocking (error 30453); pacing at ~1/sec keeps
+// the rate under the spam heuristic. Tunable via env if you swap providers
+// or get a high-throughput sender ID.
+export const SEND_DELAY_MS = Number(process.env.SMS_SEND_DELAY_MS ?? 1100);
+
+export function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}

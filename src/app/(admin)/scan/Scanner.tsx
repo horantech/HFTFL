@@ -6,8 +6,8 @@ import Link from "next/link";
 import { Check, AlertTriangle, X, ScanLine, RotateCw } from "lucide-react";
 
 type Result =
-  | { kind: "ok"; guestName: string; sponsorName: string; at: string }
-  | { kind: "already"; guestName: string; sponsorName: string; at: string }
+  | { kind: "ok"; guestName: string; sponsorName: string; tableNumber: string | null; at: string }
+  | { kind: "already"; guestName: string; sponsorName: string; tableNumber: string | null; at: string }
   | { kind: "invalid"; message: string };
 
 const COOLDOWN_MS = 2200;
@@ -58,10 +58,10 @@ export default function Scanner() {
       }
       blockedRef.current = true;
       if (j.alreadyCheckedIn) {
-        setResult({ kind: "already", guestName: j.guest.name, sponsorName: j.guest.sponsorName, at: j.guest.checkedInAt });
+        setResult({ kind: "already", guestName: j.guest.name, sponsorName: j.guest.sponsorName, tableNumber: j.guest.tableNumber ?? null, at: j.guest.checkedInAt });
         beep("warn");
       } else {
-        setResult({ kind: "ok", guestName: j.guest.name, sponsorName: j.guest.sponsorName, at: j.guest.checkedInAt });
+        setResult({ kind: "ok", guestName: j.guest.name, sponsorName: j.guest.sponsorName, tableNumber: j.guest.tableNumber ?? null, at: j.guest.checkedInAt });
         beep("ok");
       }
     } catch {
@@ -179,6 +179,14 @@ function ResultModal({ result, onClose }: { result: Result | null; onClose: () =
               <div className="mt-2 text-xl sm:text-2xl font-semibold leading-tight break-words">{result.guestName}</div>
               {result.sponsorName && result.sponsorName !== result.guestName && (
                 <div className="text-sm text-[var(--ink-mute)] mt-0.5 break-words">{result.sponsorName}</div>
+              )}
+              {result.tableNumber ? (
+                <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/70 border border-[var(--line)]">
+                  <span className="text-[10px] uppercase tracking-wider text-[var(--ink-mute)]">Table</span>
+                  <span className="text-lg font-semibold leading-none">{result.tableNumber}</span>
+                </div>
+              ) : (
+                <div className="mt-2 text-xs text-[var(--ink-mute)] italic">No table assigned</div>
               )}
               <div className="text-xs text-[var(--ink-mute)] mt-1.5">{new Date(result.at).toLocaleTimeString()}</div>
             </>

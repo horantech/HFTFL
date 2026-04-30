@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { guests, sponsors } from "@/db/schema";
 import { and, isNull, eq, or } from "drizzle-orm";
-import { sendSms, buildReminderMessage, isSmsConfigured } from "@/lib/sms";
+import { sendSms, buildReminderMessage, isSmsConfigured, SEND_DELAY_MS, sleep } from "@/lib/sms";
+
+// Vercel function max runtime. 167 messages * 1.1s/msg ≈ 184s, so we ask for
+// 300s. Requires Pro tier; Hobby caps at 10s and this route would time out.
+export const maxDuration = 300;
 
 export async function POST() {
   try {
@@ -42,7 +46,8 @@ export async function POST() {
     const recipients = Array.from(byPhone.values());
 
     let sent = 0, failed = 0;
-    for (const g of recipients) {
+    for (let i = 0; i < recipients.length; i++) {
+      const g = recipients[i];
       const r = await sendSms(g.phone!, buildReminderMessage({ name: g.name, code: g.shortCode ?? g.ticketCode, tableNumber: g.tableNumber }));
       if (r.ok) {
         sent++;
@@ -51,6 +56,7 @@ export async function POST() {
         failed++;
         await db.update(guests).set({ smsLastStatus: "failed", smsLastError: r.error.slice(0, 500) }).where(eq(guests.id, g.id));
       }
+      if (i < recipients.length - 1) await sleep(SEND_DELAY_MS);
     }
 
     const dedupSkipped = list.length - noPhone - recipients.length;

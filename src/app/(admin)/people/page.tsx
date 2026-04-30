@@ -20,6 +20,7 @@ async function loadData() {
       isIndividual: sponsors.isIndividual,
       paid: sponsors.paid,
       notes: sponsors.notes,
+      tableNumber: sponsors.tableNumber,
       createdAt: sponsors.createdAt,
       total: count(guests.id),
       checkedIn: count(guests.checkedInAt),
@@ -46,6 +47,7 @@ async function loadData() {
       sponsorName: sponsors.name,
       sponsorIsIndividual: sponsors.isIndividual,
       sponsorPaid: sponsors.paid,
+      sponsorTableNumber: sponsors.tableNumber,
       createdAt: guests.createdAt,
     })
     .from(guests)
