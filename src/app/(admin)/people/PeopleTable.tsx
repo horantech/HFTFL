@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Check, Undo2, Copy, Trash2, Plus, ExternalLink, Users, Search } from "lucide-react";
+import { ChevronRight, Check, Undo2, Copy, Trash2, Plus, ExternalLink, Users, Search, Bell } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { confirmDialog } from "@/lib/confirm";
@@ -35,6 +35,7 @@ type GuestRow = {
   paid: boolean;
   sponsorName: string;
   sponsorIsIndividual: boolean;
+  sponsorPaid: boolean;
   createdAt: Date;
 };
 
@@ -180,6 +181,35 @@ export default function PeopleTable({
     router.refresh();
     setBusy(null);
   }
+  async function remindGuest(id: string, name: string, phone: string | null) {
+    if (!phone) return;
+    const ok = await confirmDialog({
+      title: `Send reminder to ${name}?`,
+      message: `An SMS will go to ${phone}.`,
+      confirmLabel: "Send reminder",
+    });
+    if (!ok) return;
+    setBusy("rem-" + id);
+    const r = await fetch(`/api/guests/${id}/reminder`, { method: "POST" });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) toast(j.error || "Failed to send reminder", "error");
+    else toast(`Reminder sent to ${name}`, "success");
+    setBusy(null);
+  }
+  async function remindSponsor(id: string, name: string) {
+    const ok = await confirmDialog({
+      title: `Send reminder to all guests of ${name}?`,
+      message: "Eligible: paid, has phone, not yet checked in. Duplicate phones are deduplicated.",
+      confirmLabel: "Send reminders",
+    });
+    if (!ok) return;
+    setBusy("rem-" + id);
+    const r = await fetch(`/api/sponsors/${id}/reminder`, { method: "POST" });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) toast(j.error || "Failed to send reminders", "error");
+    else toast(`Sent ${j.sent} · failed ${j.failed} · dedup skipped ${j.dedupSkipped}`, "success");
+    setBusy(null);
+  }
   async function deleteGuest(id: string, name: string) {
     const ok = await confirmDialog({
       title: `Remove ${name}?`,
@@ -289,6 +319,9 @@ export default function PeopleTable({
               {g.checkedInAt
                 ? <button onClick={() => uncheck(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700"><Undo2 size={14}/> Undo</button>
                 : <button onClick={() => checkin(g.id)} disabled={busy !== null} className="btn btn-primary btn-sm"><Check size={14}/> Check in</button>}
+              {(g.sponsorPaid || g.paid) && g.phone && !g.checkedInAt && (
+                <button onClick={() => remindGuest(g.id, g.name, g.phone)} disabled={busy !== null} className="btn btn-ghost btn-sm" title="Send SMS reminder"><Bell size={14}/> Remind</button>
+              )}
             </div>
           </div>
         ))}
@@ -331,6 +364,9 @@ export default function PeopleTable({
                     {g.checkedInAt
                       ? <button onClick={() => uncheck(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700"><Undo2 size={14}/></button>
                       : <button onClick={() => checkin(g.id)} disabled={busy !== null} className="btn btn-primary btn-sm"><Check size={14}/> Check in</button>}
+                    {(g.sponsorPaid || g.paid) && g.phone && !g.checkedInAt && (
+                      <button onClick={() => remindGuest(g.id, g.name, g.phone)} disabled={busy !== null} className="btn btn-ghost btn-sm" title="Send SMS reminder"><Bell size={14}/></button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -376,6 +412,9 @@ export default function PeopleTable({
             </div>
             <div className="flex flex-wrap gap-1.5">
               <Link href={`/people/${s.id}`} className="btn btn-ghost btn-sm">Open</Link>
+              {sGuests.some(g => (s.paid || g.paid) && g.phone && !g.checkedInAt) && (
+                <button onClick={() => remindSponsor(s.id, s.name)} disabled={busy !== null} className="btn btn-ghost btn-sm" title="Send SMS reminders"><Bell size={14}/> Remind</button>
+              )}
               <button onClick={() => deleteSponsor(s.id, s.name)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700" title="Delete"><Trash2 size={14}/> Delete</button>
               {!s.isIndividual && (
                 <button onClick={() => toggle(s.id)} className="btn btn-outline btn-sm">
@@ -406,6 +445,9 @@ export default function PeopleTable({
                       {g.checkedInAt
                         ? <button onClick={() => uncheck(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700"><Undo2 size={14}/> Undo</button>
                         : <button onClick={() => checkin(g.id)} disabled={busy !== null} className="btn btn-primary btn-sm"><Check size={14}/> In</button>}
+                      {(s.paid || g.paid) && g.phone && !g.checkedInAt && (
+                        <button onClick={() => remindGuest(g.id, g.name, g.phone)} disabled={busy !== null} className="btn btn-ghost btn-sm" title="Send SMS reminder"><Bell size={14}/> Remind</button>
+                      )}
                       <button onClick={() => deleteGuest(g.id, g.name)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700"><Trash2 size={14}/> Remove</button>
                     </div>
                   </div>
@@ -501,6 +543,9 @@ export default function PeopleTable({
                   <td className="text-right">
                     <div className="inline-flex gap-1" onClick={(e) => e.stopPropagation()}>
                       <Link href={`/people/${s.id}`} className="btn btn-ghost btn-sm" title="Open detail">Open</Link>
+                      {sGuests.some(g => (s.paid || g.paid) && g.phone && !g.checkedInAt) && (
+                        <button onClick={() => remindSponsor(s.id, s.name)} disabled={busy !== null} className="btn btn-ghost btn-sm" title="Send SMS reminders"><Bell size={14}/></button>
+                      )}
                       <button onClick={() => deleteSponsor(s.id, s.name)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700" title="Delete"><Trash2 size={14}/></button>
                     </div>
                   </td>
@@ -540,6 +585,9 @@ export default function PeopleTable({
                             {g.checkedInAt
                               ? <button onClick={() => uncheck(g.id)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700"><Undo2 size={14}/></button>
                               : <button onClick={() => checkin(g.id)} disabled={busy !== null} className="btn btn-primary btn-sm"><Check size={14}/> In</button>}
+                            {(s.paid || g.paid) && g.phone && !g.checkedInAt && (
+                              <button onClick={() => remindGuest(g.id, g.name, g.phone)} disabled={busy !== null} className="btn btn-ghost btn-sm" title="Send SMS reminder"><Bell size={14}/></button>
+                            )}
                             <button onClick={() => deleteGuest(g.id, g.name)} disabled={busy !== null} className="btn btn-ghost btn-sm text-red-700" title="Remove"><Trash2 size={14}/></button>
                           </div>
                         </td>

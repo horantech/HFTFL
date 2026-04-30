@@ -57,6 +57,7 @@ async function loadPeople() {
       paid: guests.paid,
       sponsorName: sponsors.name,
       sponsorIsIndividual: sponsors.isIndividual,
+      sponsorPaid: sponsors.paid,
       createdAt: guests.createdAt,
     })
     .from(guests)

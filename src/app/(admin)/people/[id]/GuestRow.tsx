@@ -3,20 +3,22 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { Check, Copy, Undo2, Trash2, Pencil, X, ExternalLink } from "lucide-react";
+import { Check, Copy, Undo2, Trash2, Pencil, X, ExternalLink, Bell } from "lucide-react";
 import type { Guest } from "@/db/schema";
 import { formatDateTime } from "@/lib/utils";
 import { confirmDialog } from "@/lib/confirm";
+import { toast } from "@/lib/toast";
 import TicketModal, { type TicketModalData } from "@/components/TicketModal";
 import GuestPaidToggle from "@/components/GuestPaidToggle";
 
 type Props = {
   guest: Guest;
   sponsorName: string;
+  sponsorPaid?: boolean;
   variant?: "row" | "card";
 };
 
-export default function GuestRow({ guest, sponsorName, variant = "row" }: Props) {
+export default function GuestRow({ guest, sponsorName, sponsorPaid = false, variant = "row" }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -72,6 +74,22 @@ export default function GuestRow({ guest, sponsorName, variant = "row" }: Props)
     setTimeout(() => setCopied(false), 1500);
   }
 
+  const canRemind = (sponsorPaid || guest.paid) && !!guest.phone && !guest.checkedInAt;
+  async function sendReminder() {
+    const ok = await confirmDialog({
+      title: `Send reminder to ${guest.name}?`,
+      message: `An SMS will go to ${guest.phone}.`,
+      confirmLabel: "Send reminder",
+    });
+    if (!ok) return;
+    setBusy("remind");
+    const r = await fetch(`/api/guests/${guest.id}/reminder`, { method: "POST" });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) toast(j.error || "Failed to send reminder", "error");
+    else toast(`Reminder sent to ${guest.name}`, "success");
+    setBusy(null);
+  }
+
   const portal = typeof window !== "undefined" && createPortal(
     <TicketModal data={ticketModal} onClose={() => setTicketModal(null)}/>,
     document.body,
@@ -123,6 +141,11 @@ export default function GuestRow({ guest, sponsorName, variant = "row" }: Props)
           ) : (
             <button onClick={checkin} disabled={busy !== null} className="btn btn-primary btn-sm">
               <Check size={14}/> Check in
+            </button>
+          )}
+          {canRemind && (
+            <button onClick={sendReminder} disabled={busy !== null} className="btn btn-ghost btn-sm" title="Send SMS reminder">
+              <Bell size={14}/> {busy === "remind" ? "Sending…" : "Remind"}
             </button>
           )}
           <button onClick={() => setEditing(true)} disabled={busy !== null} className="btn btn-ghost btn-sm" title="Edit">
@@ -181,6 +204,11 @@ export default function GuestRow({ guest, sponsorName, variant = "row" }: Props)
           ) : (
             <button onClick={checkin} disabled={busy !== null} className="btn btn-primary text-sm">
               <Check size={14}/> Check in
+            </button>
+          )}
+          {canRemind && (
+            <button onClick={sendReminder} disabled={busy !== null} className="btn btn-ghost text-sm" title="Send SMS reminder">
+              <Bell size={14}/> {busy === "remind" ? "Sending…" : "Remind"}
             </button>
           )}
           <button onClick={() => setEditing(true)} disabled={busy !== null} className="btn btn-ghost text-sm" title="Edit">

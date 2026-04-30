@@ -45,6 +45,7 @@ export default async function SponsorDetailPage({ params }: { params: Promise<{ 
   const isCompany = sponsor.sponsorType === "company";
   const sponsorHasTicket = sponsor.isIndividual || isCompany ||
     list.some(g => g.name.trim().toLowerCase() === sponsor.name.trim().toLowerCase());
+  const canRemind = list.some(g => (sponsor.paid || g.paid) && g.phone && !g.checkedInAt);
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -81,6 +82,7 @@ export default async function SponsorDetailPage({ params }: { params: Promise<{ 
             sponsorPhone={sponsor.contactPhone}
             sponsorHasTicket={sponsorHasTicket}
             isIndividual={sponsor.isIndividual}
+            canRemind={canRemind}
           />
         </div>
       </div>
@@ -100,12 +102,12 @@ export default async function SponsorDetailPage({ params }: { params: Promise<{ 
         ) : (
           <>
             <div className="md:hidden divide-y divide-[var(--line)]">
-              {list.map(g => <GuestRow key={g.id} guest={g} sponsorName={sponsor.name} variant="card"/>)}
+              {list.map(g => <GuestRow key={g.id} guest={g} sponsorName={sponsor.name} sponsorPaid={sponsor.paid} variant="card"/>)}
             </div>
             <div className="hidden md:block scroll-x">
               <table className="table">
                 <thead><tr><th>Name</th><th>Phone</th><th>Status</th><th>Ticket</th><th></th></tr></thead>
-                <tbody>{list.map(g => <GuestRow key={g.id} guest={g} sponsorName={sponsor.name} variant="row"/>)}</tbody>
+                <tbody>{list.map(g => <GuestRow key={g.id} guest={g} sponsorName={sponsor.name} sponsorPaid={sponsor.paid} variant="row"/>)}</tbody>
               </table>
             </div>
           </>
